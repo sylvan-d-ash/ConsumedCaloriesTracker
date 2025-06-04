@@ -19,26 +19,29 @@ struct ProfileView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                }
-
-                if let dataError = viewModel.dataInteractionError {
+                } else if let dataError = viewModel.dataInteractionError {
                     Section {
                         Text(dataError)
                             .foregroundStyle(
                                 dataError.lowercased().contains("error") || dataError.lowercased().contains("invalid") ? .orange : .blue
                             )
                     }
-                }
+                } else {
+                    Section("User Information") {
+                        ForEach(viewModel.profileItems) { item in
+                            HStack {
+                                Text(item.unitLabel)
 
-                Section("User Information") {
-                    ForEach(viewModel.profileItems) { item in
-                        HStack {
-                            Text(item.unitLabel)
+                                Spacer()
 
-                            Spacer()
-
-                            Text(item.value)
-                                .foregroundStyle(.secondary)
+                                Text(item.value)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                viewModel.handleProfileItemSelection(item)
+                            }
+                            .disabled(item.type.isEditable == false)
                         }
                     }
                 }
@@ -46,6 +49,18 @@ struct ProfileView: View {
             .navigationTitle("Your Profile")
             .onAppear {
                 viewModel.onViewAppear()
+            }
+            .alert(viewModel.alertTitle, isPresented: $viewModel.showingInputAlert, presenting: viewModel.alertInputType) { _ in
+                TextField("Enter new value", text: $viewModel.alertInputValue)
+                    .keyboardType(.decimalPad)
+
+                Button("Save") {
+                    viewModel.saveNewValue()
+                }
+
+                Button("Cancel", role: .cancel) {}
+            } message: { type in
+                Text("Enter the new value for \(type.rawValue.lowercased())")
             }
         }
     }

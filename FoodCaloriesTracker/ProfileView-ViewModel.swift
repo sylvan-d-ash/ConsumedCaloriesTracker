@@ -60,9 +60,18 @@ extension ProfileView {
         @Published var authorizationError: String?
         @Published var dataInteractionError: String?
 
+        @Published var showingInputAlert = false
+        @Published var alertInputType: ProfileItemType?
+        @Published var alertInputValue: String = ""
+
         private let healthKitManager = HealthKitManager()
         private var cancellables = Set<AnyCancellable>()
         private let itemsOrder: [ProfileItemType] = [.age, .sex, .height, .weight]
+
+        var alertTitle: String {
+            guard let type = alertInputType else { return "" }
+            return "Update \(type.rawValue)"
+        }
 
         init() {
             setupBindings()
@@ -102,6 +111,31 @@ extension ProfileView {
 
         func onViewAppear() {
             healthKitManager.requestAuthorizationAndLoadData()
+        }
+
+        func handleProfileItemSelection(_ item: ProfileItemData) {
+            guard item.type.isEditable else { return }
+            alertInputType = item.type
+            alertInputValue = ""
+            showingInputAlert = true
+        }
+
+        func saveNewValue() {
+            guard let type = alertInputType else { return }
+            guard let value = Double(alertInputValue.replacingOccurrences(of: ",", with: ".")) else {
+                dataInteractionError = "Invalid input: \(alertInputValue) is not a valid number"
+                return
+            }
+
+            dataInteractionError = nil
+
+            switch type {
+            case .age, .sex: break
+            case .height:
+                break
+            case .weight:
+                break
+            }
         }
     }
 }
