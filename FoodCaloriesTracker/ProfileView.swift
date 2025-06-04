@@ -17,6 +17,7 @@ private struct ProfileRowView: View {
             Spacer()
 
             Text(item.value)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
     }

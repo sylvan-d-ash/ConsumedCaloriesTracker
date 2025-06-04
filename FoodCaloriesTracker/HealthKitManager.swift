@@ -139,6 +139,7 @@ final class HealthKitManager: ObservableObject {
             let foodItems = correlations.compactMap { self.foodItem(from: $0) }
             completion(.success(foodItems))
         }
+        healthStore.execute(query)
     }
 
     func saveFoodItem(_ item: FoodItem, completion: @escaping (Result<FoodItem, Error>) -> Void) {
