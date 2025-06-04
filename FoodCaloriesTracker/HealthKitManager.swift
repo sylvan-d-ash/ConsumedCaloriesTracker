@@ -12,11 +12,11 @@ final class HealthKitManager: ObservableObject {
     @Published var authorizationStatus: HKAuthorizationStatus?
     @Published var authorizationError: String?
     @Published var dataFetchError: String?
-    @Published var profileData: [ProfileItemType: ProfileItemData] = [
-        .age: ProfileItemData(type: .age),
-        .sex: ProfileItemData(type: .sex),
-        .height: ProfileItemData(type: .height),
-        .weight: ProfileItemData(type: .weight),
+    @Published var profileData: [ProfileItemType: ProfileItem] = [
+        .age: ProfileItem(type: .age),
+        .sex: ProfileItem(type: .sex),
+        .height: ProfileItem(type: .height),
+        .weight: ProfileItem(type: .weight),
     ]
 
     private let healthStore = HKHealthStore()
