@@ -5,7 +5,8 @@
 //  Created by Sylvan  on 04/06/2025.
 //
 
-import SwiftUI
+import Foundation
+import Combine
 
 enum ProfileItemType: String, CaseIterable, Identifiable {
     case age = "Age"
