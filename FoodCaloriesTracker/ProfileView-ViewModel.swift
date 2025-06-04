@@ -132,9 +132,9 @@ extension ProfileView {
             switch type {
             case .age, .sex: break
             case .height:
-                break
+                healthKitManager.saveHeight(value)
             case .weight:
-                break
+                healthKitManager.saveWeight(value)
             }
         }
     }
