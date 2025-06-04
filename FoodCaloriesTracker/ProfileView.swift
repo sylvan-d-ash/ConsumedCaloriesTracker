@@ -44,6 +44,9 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Your Profile")
+            .onAppear {
+                viewModel.onViewAppear()
+            }
         }
     }
 }
