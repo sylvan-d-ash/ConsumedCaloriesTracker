@@ -21,28 +21,6 @@ final class HealthKitManager: ObservableObject {
 
     private let healthStore = HKHealthStore()
 
-//    private var dataTypesToWrite: Set<HKSampleType> {
-//        guard let dietaryCaloriesEnergyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed),
-//              let activeEnergyBurnType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-//              let heightType = HKQuantityType.quantityType(forIdentifier: .height),
-//              let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
-//            return []
-//        }
-//        return [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType]
-//    }
-
-//    private var dataTypesToRead: Set<HKObjectType> {
-//        guard let dietaryCaloriesEnergyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed),
-//              let activeEnergyBurnType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
-//              let heightType = HKQuantityType.quantityType(forIdentifier: .height),
-//              let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass),
-//              let birthdayType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth),
-//              let biologicalType = HKObjectType.characteristicType(forIdentifier: .biologicalSex) else {
-//            return []
-//        }
-//        return [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType]
-//    }
-
     func requestAuthorizationAndLoadData() {
         guard HKHealthStore.isHealthDataAvailable() else {
             self.authorizationError = "HealthKit is not available on this device."
