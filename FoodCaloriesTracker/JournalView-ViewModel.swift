@@ -19,7 +19,6 @@ extension JournalView {
         }()
 
         @Published var loggedFoodItems = [FoodItem]()
-        @Published var showingFoodPicker = false
         @Published var isLoading = false
         @Published var errorMessage: String?
 
