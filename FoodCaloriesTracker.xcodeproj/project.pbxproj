@@ -6,13 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		04B2ED072DF088AF009574D9 /* ProfileItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B2ED062DF088AF009574D9 /* ProfileItem.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		04B2ECCF2DF05009009574D9 /* FoodCaloriesTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FoodCaloriesTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		04B2ED062DF088AF009574D9 /* ProfileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,7 +32,6 @@
 		04B2ECC62DF05009009574D9 = {
 			isa = PBXGroup;
 			children = (
-				04B2ED062DF088AF009574D9 /* ProfileItem.swift */,
 				04B2ECD12DF05009009574D9 /* FoodCaloriesTracker */,
 				04B2ECD02DF05009009574D9 /* Products */,
 			);
@@ -125,7 +119,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				04B2ED072DF088AF009574D9 /* ProfileItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
