@@ -72,6 +72,7 @@ final class HealthKitManager: ObservableObject {
                 if success {
                     self.authorizationError = nil
                     self.updateUserAge()
+                    self.updateUserSex()
                     self.updateUserHeight()
                     self.updateUserWeight()
                 } else {
@@ -82,14 +83,58 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func updateUserAge() {
-        //
+        do {
+            let dateOfBirth = try healthStore.dateOfBirthComponents().date
+            guard let dateOfBirth else {
+                updateProfileData(for: .age)
+                return
+            }
+
+            let components = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now)
+            let userAge = components.year ?? 0
+            let ageValue = NumberFormatter.localizedString(from: userAge as NSNumber, number: .none)
+            updateProfileData(for: .age, value: ageValue)
+        } catch {
+            print("Error fetching date of birth: \(error.localizedDescription)")
+            updateProfileData(for: .age)
+        }
+    }
+
+    private func updateUserSex() {
+//        do {
+//            let sex = try healthStore.biologicalSex()
+//            updateProfileData(for: .age, value: sex.biologicalSex.rawValue == 1 ? "Female" : "Male")
+//        } catch {
+//            print("Error fetching biological sex: \(error.localizedDescription)")
+//            updateProfileData(for: .age)
+//        }
     }
 
     private func updateUserHeight() {
-        //
+        guard let heightType = HKQuantityType.quantityType(forIdentifier: .height) else {
+            print("Height type not available!")
+            return
+        }
+
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let query = HKSampleQuery(sampleType: heightType, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
+        }
     }
 
     private func updateUserWeight() {
         //
+    }
+
+    private func updateProfileData(for type: ProfileItemType, unitLabel: String? = nil, value: String = NSLocalizedString("Not available", comment: "")) {
+        guard var item = profileData[type] else { return }
+        if let unitLabel {
+            item.unitLabel = unitLabel
+        }
+        item.value = value
+        profileData[type] = item
+    }
+
+    private func getMostRecentSample(for sampleType: HKSampleType) {
+        let mostRecentPredicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
     }
 }
