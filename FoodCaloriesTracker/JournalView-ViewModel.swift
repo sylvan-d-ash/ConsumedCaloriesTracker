@@ -9,6 +9,7 @@ import Combine
 import SwiftUI
 
 extension JournalView {
+    @MainActor
     final class ViewModel: ObservableObject {
         static var energyFormatter: EnergyFormatter = {
             let formatter = EnergyFormatter()
@@ -30,56 +31,54 @@ extension JournalView {
 
         func onAppear() {
             healthKitManager.requestAuthorizationAndLoadData()
-            fetchTodaysFoodLog()
+            Task {
+                await fetchTodaysFoodLog()
+            }
         }
 
         func handleScenePhaseChange(_ newPhase: ScenePhase) {
             if newPhase == .active {
-                fetchTodaysFoodLog()
+                Task {
+                    await fetchTodaysFoodLog()
+                }
             }
         }
 
         func foodItemSelectedFromPicker(_ item: FoodItem) {
-            saveFoodItemToHealthStore(item)
+            Task {
+                await saveFoodItemToHealthStore(item)
+            }
         }
     }
 }
 
 private extension JournalView.ViewModel {
-    func fetchTodaysFoodLog() {
+    func fetchTodaysFoodLog() async {
         isLoading = true
         errorMessage = nil
-        healthKitManager.fetchTodaysFoodLog { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                switch result {
-                case .success(let items):
-                    self?.loggedFoodItems = items
-                case .failure(let error):
-                    self?.errorMessage = "Failed to load journal: \(error.localizedDescription)"
-                    print("Error fetching food log: \(error)")
-                }
-            }
+
+        do {
+            loggedFoodItems = try await healthKitManager.fetchTodaysFoodLog()
+        } catch {
+            print("Error fetching food log: \(error)")
+            errorMessage = "Failed to load journal: \(error.localizedDescription)"
         }
+
+        isLoading = false
     }
 
-    func saveFoodItemToHealthStore(_ foodItem: FoodItem) {
-        isLoading = true // Or a different loading state for saving
+    func saveFoodItemToHealthStore(_ foodItem: FoodItem) async {
+        isLoading = true
         errorMessage = nil
-        healthKitManager.saveFoodItem(foodItem) { [weak self] result in
-            DispatchQueue.main.async {
-                self?.isLoading = false // Reset loading state
-                switch result {
-                case .success(let savedItem):
-                    // Add to the top of the list optimistically or re-fetch
-                    // For simplicity, let's prepend and assume it matches what's in HK
-                    self?.loggedFoodItems.insert(savedItem, at: 0)
-                    // Alternatively, re-fetch: self?.fetchTodaysFoodLog()
-                case .failure(let error):
-                    self?.errorMessage = "Failed to save food: \(error.localizedDescription)"
-                    print("Error saving food item: \(error)")
-                }
-            }
+
+        do {
+            let item = try await healthKitManager.saveFoodItem(foodItem)
+            loggedFoodItems.insert(item, at: 0)
+        } catch {
+            errorMessage = "Failed to save food: \(error.localizedDescription)"
+            print("Error saving food item: \(error)")
         }
+
+        isLoading = false
     }
 }

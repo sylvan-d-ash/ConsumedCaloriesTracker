@@ -114,38 +114,43 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    func fetchTodaysFoodLog(completion: @escaping (Result<[FoodItem], Error>) -> Void) {
+    func fetchTodaysFoodLog() async throws -> [FoodItem] {
         guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food) else {
-            completion(.failure(NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])))
-            return
+            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])
         }
 
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: .now)
         let end = calendar.date(byAdding: .day, value: 1, to: start)
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        let query = HKSampleQuery(sampleType: foodCorrelationType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sortDescriptor]) { _, samples, error in
-            if let error {
-                completion(.failure(error))
-                return
-            }
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: foodCorrelationType,
+                                      predicate: predicate,
+                                      limit: HKObjectQueryNoLimit,
+                                      sortDescriptors: [sortDescriptor]) {  _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
 
-            guard let correlations = samples as? [HKCorrelation] else {
-                completion(.success([]))
-                return
-            }
+                guard let correlations = samples as? [HKCorrelation] else {
+                    // No correlations found or type mismatch
+                    continuation.resume(returning: [])
+                    return
+                }
 
-            let foodItems = correlations.compactMap { self.foodItem(from: $0) }
-            completion(.success(foodItems))
+                let foodItems = correlations.compactMap { Self.foodItem(from: $0) }
+                continuation.resume(returning: foodItems)
+            }
+            self.healthStore.execute(query)
         }
-        healthStore.execute(query)
     }
 
-    func saveFoodItem(_ item: FoodItem, completion: @escaping (Result<FoodItem, Error>) -> Void) {
+    func saveFoodItem(_ item: FoodItem) async throws -> FoodItem {
         guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food), let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
-            completion(.failure(NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create required HealthKit types for saving food!"])))
-            return
+            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create required HealthKit types for saving food!"])
         }
 
         let energyQuantity = HKQuantity(unit: .joule(), doubleValue: item.joules)
@@ -155,17 +160,18 @@ final class HealthKitManager: ObservableObject {
         let correlationMetadata: [String: Any] = [HKMetadataKeyFoodType: item.name]
         let correlation = HKCorrelation(type: foodCorrelationType, start: .now, end: .now, objects: samples, metadata: correlationMetadata)
 
-        healthStore.save(correlation) { success, error in
-            if let error {
-                completion(.failure(error))
-                return
+        return try await withCheckedThrowingContinuation { continuation in
+            healthStore.save(correlation) { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if success {
+                    continuation.resume(returning: item)
+                    return
+                }
+                continuation.resume(throwing: NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save food correlation without specific error message!"]))
             }
-            if success {
-                completion(.success(item))
-                return
-            }
-
-            completion(.failure(NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save food correlation without specific error message!"])))
         }
     }
 
@@ -325,7 +331,7 @@ final class HealthKitManager: ObservableObject {
         healthStore.execute(query)
     }
 
-    private func foodItem(from correlation: HKCorrelation) -> FoodItem? {
+    static private func foodItem(from correlation: HKCorrelation) -> FoodItem? {
         guard let name = correlation.metadata?[HKMetadataKeyFoodType] as? String,
               let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)  else {
             return nil
