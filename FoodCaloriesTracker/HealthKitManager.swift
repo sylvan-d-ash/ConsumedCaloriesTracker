@@ -116,13 +116,69 @@ final class HealthKitManager: ObservableObject {
             return
         }
 
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-        let query = HKSampleQuery(sampleType: heightType, predicate: nil, limit: 1, sortDescriptors: [sortDescriptor]) { [weak self] (_, samples, error) in
+        getMostRecentSample(for: heightType) { [weak self] sample, error in
+            guard let `self` = self else { return }
+
+            if let error {
+                print("Error fetching height: \(error.localizedDescription)")
+                self.updateProfileData(for: .height)
+                return
+            }
+
+            guard let sample else {
+                self.updateProfileData(for: .height)
+                return
+            }
+
+            let quantity = sample.quantity
+            print("Inch: \(quantity.doubleValue(for: HKUnit.inch())) | Meters: \(quantity.doubleValue(for: HKUnit.meter())) | Feet: \(quantity.doubleValue(for: HKUnit.foot()))")
+
+            // value
+            let height = sample.quantity.doubleValue(for: HKUnit.inch())
+            let heightValue = NumberFormatter.localizedString(from: height as NSNumber, number: .decimal)
+
+            // unit label
+            let formatter = LengthFormatter()
+            formatter.unitStyle = .long
+            let unitString = formatter.unitString(fromValue: 1, unit: .inch)
+            let unitLabel = String(format: NSLocalizedString("Height (@)", comment: ""), unitString)
+
+            self.updateProfileData(for: .height, unitLabel: unitLabel, value: heightValue)
         }
     }
 
     private func updateUserWeight() {
-        //
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            print("Weight type not available")
+            return
+        }
+
+        getMostRecentSample(for: weightType) { [weak self] (sample, error) in
+            guard let `self` = self else { return }
+
+            if let error {
+                print("Error fetching most recent weight sample: \(error.localizedDescription)")
+                self.updateProfileData(for: .weight)
+                return
+            }
+
+            guard let sample else {
+                self.updateProfileData(for: .weight)
+                return
+            }
+
+            // value
+            let weight = sample.quantity.doubleValue(for: HKUnit.pound())
+            let weightValue = NumberFormatter.localizedString(from: weight as NSNumber, number: .decimal)
+
+            // unit label
+            let formatter = MassFormatter()
+            formatter.unitStyle = .long
+            let unitString = formatter.unitString(fromValue: 1, unit: .pound)
+            let unitLabel = String(format: NSLocalizedString("Weight (%@)", comment: ""), unitString)
+
+            self.updateProfileData(for: .weight, unitLabel: unitLabel, value: weightValue)
+        }
     }
 
     private func updateProfileData(for type: ProfileItemType, unitLabel: String? = nil, value: String = NSLocalizedString("Not available", comment: "")) {
@@ -134,7 +190,18 @@ final class HealthKitManager: ObservableObject {
         profileData[type] = item
     }
 
-    private func getMostRecentSample(for sampleType: HKSampleType) {
+    private func getMostRecentSample(for sampleType: HKSampleType, completion: @escaping (HKQuantitySample?, Error?) -> Void) {
         let mostRecentPredicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+        let query = HKSampleQuery(sampleType: sampleType, predicate: mostRecentPredicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, error in
+            DispatchQueue.main.async {
+                guard let samples, let mostRecentSample = samples.first as? HKQuantitySample else {
+                    completion(nil, error)
+                    return
+                }
+                completion(mostRecentSample, nil)
+            }
+        }
+        healthStore.execute(query)
     }
 }
