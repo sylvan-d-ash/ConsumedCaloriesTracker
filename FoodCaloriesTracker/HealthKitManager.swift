@@ -9,7 +9,6 @@ import Combine
 import HealthKit
 
 final class HealthKitManager: ObservableObject {
-    @Published var authorizationStatus: HKAuthorizationStatus?
     @Published var authorizationError: String?
     @Published var dataFetchError: String?
     @Published var profileData: [ProfileItemType: ProfileItem] = [
@@ -17,9 +16,13 @@ final class HealthKitManager: ObservableObject {
         .sex: ProfileItem(type: .sex),
         .height: ProfileItem(type: .height),
         .weight: ProfileItem(type: .weight),
+        .bloodType: ProfileItem(type: .bloodType),
+        .bmi: ProfileItem(type: .bmi),
     ]
 
     private let healthStore = HKHealthStore()
+    private var currentHeightInMeters: Double?
+    private var currentWeightInKilograms: Double?
 
     func requestAuthorizationAndLoadData() {
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -32,12 +35,13 @@ final class HealthKitManager: ObservableObject {
               let heightType = HKQuantityType.quantityType(forIdentifier: .height),
               let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass),
               let birthdayType = HKObjectType.characteristicType(forIdentifier: .dateOfBirth),
+              let bloodType = HKObjectType.characteristicType(forIdentifier: .bloodType),
               let biologicalType = HKObjectType.characteristicType(forIdentifier: .biologicalSex) else {
             return
         }
 
         let dataTypesToWrite: Set<HKSampleType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType]
-        let dataTypesToRead: Set<HKObjectType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType]
+        let dataTypesToRead: Set<HKObjectType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType, bloodType]
 
         healthStore.requestAuthorization(toShare: dataTypesToWrite, read: dataTypesToRead) { [weak self] (success, error) in
             DispatchQueue.main.async {
@@ -120,8 +124,7 @@ final class HealthKitManager: ObservableObject {
 
             let components = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now)
             let userAge = components.year ?? 0
-            let ageValue = NumberFormatter.localizedString(from: userAge as NSNumber, number: .none)
-            updateProfileData(for: .age, value: ageValue)
+            updateProfileData(for: .age, value: "\(userAge)")
         } catch {
             print("Error fetching date of birth: \(error.localizedDescription)")
             updateProfileData(for: .age)
@@ -130,11 +133,43 @@ final class HealthKitManager: ObservableObject {
 
     private func updateUserSex() {
         do {
+            var value: String = ""
             let sex = try healthStore.biologicalSex()
-            updateProfileData(for: .sex, value: sex.biologicalSex.rawValue == 1 ? "Female" : "Male")
+            switch sex.biologicalSex {
+            case .notSet: value = NSLocalizedString("Not set", comment: "")
+            case .female: value = NSLocalizedString("Female", comment: "")
+            case .male: value = NSLocalizedString("Male", comment: "")
+            case .other: value = NSLocalizedString("Other", comment: "")
+            @unknown default: value = NSLocalizedString("Not available", comment: "")
+            }
+
+            updateProfileData(for: .sex, value: value)
         } catch {
             print("Error fetching biological sex: \(error.localizedDescription)")
             updateProfileData(for: .sex)
+        }
+    }
+
+    private func updateBloodType() {
+        do {
+            var value = ""
+            let bloodTypeObject = try healthStore.bloodType()
+            switch bloodTypeObject.bloodType {
+            case .aPositive: value = "A+"
+            case .aNegative: value = "A-"
+            case .bPositive: value = "B+"
+            case .bNegative: value = "B-"
+            case .abPositive: value = "AB+"
+            case .abNegative: value = "AB-"
+            case .oPositive: value = "O+"
+            case .oNegative: value = "O-"
+            case .notSet: value = NSLocalizedString("Not set", comment: "")
+            @unknown default: value = NSLocalizedString("Not available", comment: "")
+            }
+            updateProfileData(for: .bloodType, value: value)
+        } catch {
+            print("Error fetching blood type: \(error.localizedDescription)")
+            updateProfileData(for: .bloodType)
         }
     }
 
@@ -159,21 +194,15 @@ final class HealthKitManager: ObservableObject {
                 return
             }
 
-            //let quantity = sample?.quantity ?? HKQuantity(unit: .meter(), doubleValue: 1.6)
-            let quantity = sample.quantity
-            print("Inch: \(quantity.doubleValue(for: HKUnit.inch())) | Meters: \(quantity.doubleValue(for: HKUnit.meter())) | Feet: \(quantity.doubleValue(for: HKUnit.foot()))")
+            let height = sample.quantity.doubleValue(for: .meter())
+            currentHeightInMeters = height
 
-            // value
-            let height = quantity.doubleValue(for: HKUnit.meter())
-            let heightValue = NumberFormatter.localizedString(from: height as NSNumber, number: .decimal)
-
-            // unit label
             let formatter = LengthFormatter()
-            formatter.unitStyle = .long
-            let unitString = formatter.unitString(fromValue: 1, unit: .meter)
-            let unitLabel = String(format: NSLocalizedString("Height (%@)", comment: ""), unitString)
+            formatter.isForPersonHeightUse = true
+            let heightValue = formatter.string(fromMeters: height)
 
-            self.updateProfileData(for: .height, unitLabel: unitLabel, value: heightValue)
+            self.updateProfileData(for: .height, value: heightValue)
+            self.calculateBMI()
         }
     }
 
@@ -197,27 +226,33 @@ final class HealthKitManager: ObservableObject {
                 return
             }
 
-            // value
             let weight = sample.quantity.doubleValue(for: .gramUnit(with: .kilo))
-            let weightValue = NumberFormatter.localizedString(from: weight as NSNumber, number: .decimal)
+            currentWeightInKilograms = weight
 
-            // unit label
             let formatter = MassFormatter()
-            formatter.unitStyle = .long
-            let unitString = formatter.unitString(fromValue: 1, unit: .kilogram)
-            let unitLabel = String(format: NSLocalizedString("Weight (%@)", comment: ""), unitString)
+            formatter.isForPersonMassUse = true
+            let weightValue = formatter.string(fromKilograms: weight)
 
-            self.updateProfileData(for: .weight, unitLabel: unitLabel, value: weightValue)
+            self.updateProfileData(for: .weight, value: weightValue)
+            self.calculateBMI()
         }
     }
 
-    private func updateProfileData(for type: ProfileItemType, unitLabel: String? = nil, value: String = NSLocalizedString("Not available", comment: "")) {
+    private func updateProfileData(for type: ProfileItemType, value: String = NSLocalizedString("Not available", comment: "")) {
         guard var item = profileData[type] else { return }
-        if let unitLabel {
-            item.unitLabel = unitLabel
-        }
         item.value = value
         profileData[type] = item
+    }
+
+    private func calculateBMI() {
+        guard let height = currentHeightInMeters, height > 0,
+              let weight = currentWeightInKilograms, weight > 0 else {
+            updateProfileData(for: .bmi)
+            return
+        }
+        let bmi = weight / (height * height)
+        let value = String(format: "%.2f", bmi)
+        updateProfileData(for: .bmi, value: value)
     }
 
     private func getMostRecentSample(for sampleType: HKSampleType, completion: @escaping (HKQuantitySample?, Error?) -> Void) {
