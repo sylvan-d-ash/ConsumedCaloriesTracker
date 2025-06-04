@@ -61,6 +61,55 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
+    func saveHeight(_ height: Double) {
+        guard let heightType = HKQuantityType.quantityType(forIdentifier: .height) else {
+            print("Height type not available for saving.")
+            return
+        }
+        let heightQuantity = HKQuantity(unit: .meter(), doubleValue: height)
+        let heightSample = HKQuantitySample(type: heightType, quantity: heightQuantity, start: .now, end: .now)
+
+        healthStore.save(heightSample) { [weak self] (success, error) in
+            DispatchQueue.main.async {
+                guard let `self` = self else { return }
+                if let error = error {
+                    self.dataFetchError = "Error saving height: \(error.localizedDescription)"
+                    print("Error saving height: \(error.localizedDescription)")
+                    return
+                }
+
+                if success {
+                    self.dataFetchError = nil
+                    self.updateUserHeight()
+                }
+            }
+        }
+    }
+
+    func saveWeight(_ weight: Double) {
+        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            print("Weight type not available for saving.")
+            return
+        }
+        let weightQuantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: weight)
+        let weightSample = HKQuantitySample(type: weightType, quantity: weightQuantity, start: .now, end: .now)
+
+        healthStore.save(weightSample) { [weak self] (success, error) in
+            DispatchQueue.main.async {
+                guard let `self` = self else { return }
+                if let error = error {
+                    self.dataFetchError = "Error saving weight: \(error.localizedDescription)"
+                    print("Error saving weight: \(error.localizedDescription)")
+                    return
+                }
+                if success {
+                    self.dataFetchError = nil
+                    self.updateUserWeight()
+                }
+            }
+        }
+    }
+
     private func updateUserAge() {
         do {
             let dateOfBirth = try healthStore.dateOfBirthComponents().date
@@ -105,22 +154,24 @@ final class HealthKitManager: ObservableObject {
             }
 
             guard let sample else {
+                print("Error: No height sample to use")
                 self.updateProfileData(for: .height)
                 return
             }
 
+            //let quantity = sample?.quantity ?? HKQuantity(unit: .meter(), doubleValue: 1.6)
             let quantity = sample.quantity
             print("Inch: \(quantity.doubleValue(for: HKUnit.inch())) | Meters: \(quantity.doubleValue(for: HKUnit.meter())) | Feet: \(quantity.doubleValue(for: HKUnit.foot()))")
 
             // value
-            let height = sample.quantity.doubleValue(for: HKUnit.inch())
+            let height = quantity.doubleValue(for: HKUnit.meter())
             let heightValue = NumberFormatter.localizedString(from: height as NSNumber, number: .decimal)
 
             // unit label
             let formatter = LengthFormatter()
             formatter.unitStyle = .long
-            let unitString = formatter.unitString(fromValue: 1, unit: .inch)
-            let unitLabel = String(format: NSLocalizedString("Height (@)", comment: ""), unitString)
+            let unitString = formatter.unitString(fromValue: 1, unit: .meter)
+            let unitLabel = String(format: NSLocalizedString("Height (%@)", comment: ""), unitString)
 
             self.updateProfileData(for: .height, unitLabel: unitLabel, value: heightValue)
         }
@@ -147,13 +198,13 @@ final class HealthKitManager: ObservableObject {
             }
 
             // value
-            let weight = sample.quantity.doubleValue(for: HKUnit.pound())
+            let weight = sample.quantity.doubleValue(for: .gramUnit(with: .kilo))
             let weightValue = NumberFormatter.localizedString(from: weight as NSNumber, number: .decimal)
 
             // unit label
             let formatter = MassFormatter()
             formatter.unitStyle = .long
-            let unitString = formatter.unitString(fromValue: 1, unit: .pound)
+            let unitString = formatter.unitString(fromValue: 1, unit: .kilogram)
             let unitLabel = String(format: NSLocalizedString("Weight (%@)", comment: ""), unitString)
 
             self.updateProfileData(for: .weight, unitLabel: unitLabel, value: weightValue)
