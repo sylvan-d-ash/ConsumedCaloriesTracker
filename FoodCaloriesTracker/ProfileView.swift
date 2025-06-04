@@ -8,14 +8,42 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @StateObject private var viewModel = ViewModel()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        NavigationStack {
+            List {
+                if let authorizationError = viewModel.authorizationError {
+                    Section {
+                        Text(authorizationError)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                if let dataError = viewModel.dataInteractionError {
+                    Section {
+                        Text(dataError)
+                            .foregroundStyle(
+                                dataError.lowercased().contains("error") || dataError.lowercased().contains("invalid") ? .orange : .blue
+                            )
+                    }
+                }
+
+                Section("User Information") {
+                    ForEach(viewModel.profileItems) { item in
+                        HStack {
+                            Text(item.unitLabel)
+
+                            Spacer()
+
+                            Text(item.value)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Your Profile")
         }
-        .padding()
     }
 }
 
