@@ -14,8 +14,9 @@ final class HealthKitManager: ObservableObject {
     @Published var dataFetchError: String?
     @Published var profileData: [ProfileItemType: ProfileItemData] = [
         .age: ProfileItemData(type: .age),
-        .height: ProfileItemData(type: .height, unitLabel: "Height ()"),
-        .weight: ProfileItemData(type: .weight, unitLabel: "Weight ()"),
+        .sex: ProfileItemData(type: .sex),
+        .height: ProfileItemData(type: .height),
+        .weight: ProfileItemData(type: .weight),
     ]
 
     private let healthStore = HKHealthStore()
@@ -101,13 +102,13 @@ final class HealthKitManager: ObservableObject {
     }
 
     private func updateUserSex() {
-//        do {
-//            let sex = try healthStore.biologicalSex()
-//            updateProfileData(for: .age, value: sex.biologicalSex.rawValue == 1 ? "Female" : "Male")
-//        } catch {
-//            print("Error fetching biological sex: \(error.localizedDescription)")
-//            updateProfileData(for: .age)
-//        }
+        do {
+            let sex = try healthStore.biologicalSex()
+            updateProfileData(for: .sex, value: sex.biologicalSex.rawValue == 1 ? "Female" : "Male")
+        } catch {
+            print("Error fetching biological sex: \(error.localizedDescription)")
+            updateProfileData(for: .sex)
+        }
     }
 
     private func updateUserHeight() {
