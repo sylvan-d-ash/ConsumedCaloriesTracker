@@ -23,7 +23,11 @@ private struct ProfileRowView: View {
 }
 
 struct ProfileView: View {
-    @StateObject private var viewModel = ViewModel()
+    @StateObject private var viewModel: ViewModel
+
+    init(healthKitManager: HealthKitManager) {
+        _viewModel = .init(wrappedValue: ViewModel(healthKitManager: healthKitManager))
+    }
 
     var body: some View {
         NavigationStack {
@@ -84,7 +88,5 @@ struct ProfileView: View {
 }
 
 #Preview {
-    NavigationStack {
-        ProfileView()
-    }
+    ProfileView(healthKitManager: HealthKitManager())
 }

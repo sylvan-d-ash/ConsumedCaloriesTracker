@@ -8,17 +8,19 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
+
     var body: some View {
         TabView {
             NavigationStack {
-                ProfileView()
+                ProfileView(healthKitManager: healthKitManager)
             }
             .tabItem {
                 Label("Profile", systemImage: "person.crop.circle")
             }
 
             NavigationStack {
-                JournalView()
+                JournalView(healthKitManager: healthKitManager)
             }
             .tabItem {
                 Label("Journal", systemImage: "book.closed")
@@ -36,9 +38,11 @@ struct MainTabView: View {
 
 #Preview("Default (Light)") {
     MainTabView()
+        .environmentObject(HealthKitManager())
 }
 
 #Preview("Dark Mode") {
     MainTabView()
         .preferredColorScheme(.dark)
+        .environmentObject(HealthKitManager())
 }

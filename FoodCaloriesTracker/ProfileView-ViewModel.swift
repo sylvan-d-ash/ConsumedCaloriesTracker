@@ -19,7 +19,7 @@ extension ProfileView {
         @Published var alertInputType: ProfileItemType?
         @Published var alertInputValue: String = ""
 
-        private let healthKitManager = HealthKitManager()
+        private let healthKitManager: HealthKitManager
         private var cancellables = Set<AnyCancellable>()
         private let userInfoItemOrder: [ProfileItemType] = [.age, .sex, .bloodType]
         private let weightHeightItemOrder: [ProfileItemType] = [.weight, .height, .bmi]
@@ -29,7 +29,8 @@ extension ProfileView {
             return "Update \(type.rawValue)"
         }
 
-        init() {
+        init(healthKitManager: HealthKitManager) {
+            self.healthKitManager = healthKitManager
             setupBindings()
         }
 
