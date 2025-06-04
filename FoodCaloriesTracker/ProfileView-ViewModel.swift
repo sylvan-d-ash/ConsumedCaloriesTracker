@@ -8,55 +8,9 @@
 import Foundation
 import Combine
 
-enum ProfileItemType: String, CaseIterable, Identifiable {
-    case age = "Age"
-    case height = "Height"
-    case weight = "Weight"
-    case sex = "Biological Sex"
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .age: return NSLocalizedString("Age (yrs)", comment: "")
-        case .height: return NSLocalizedString("Height", comment: "")
-        case .weight: return NSLocalizedString("Weight", comment: "")
-        case .sex: return NSLocalizedString("Biological Sex", comment: "")
-        }
-    }
-
-    var isEditable: Bool {
-        switch self {
-        case .age, .sex: return false
-        default: return true
-        }
-    }
-}
-
-struct ProfileItemData: Identifiable {
-    let type: ProfileItemType
-    var unitLabel: String
-    var value: String
-
-    var id: String { type.id }
-
-    init(type: ProfileItemType, unitLabel: String? = nil, value: String = NSLocalizedString("Not available", comment: "")) {
-        self.type = type
-        self.unitLabel = unitLabel ?? type.displayName
-        self.value = value
-    }
-
-    static let example: [ProfileItemData] = [
-        ProfileItemData(type: .age, value: "19"),
-        ProfileItemData(type: .height, value: "160"),
-        ProfileItemData(type: .weight, value: "60"),
-        ProfileItemData(type: .sex, value: "Female"),
-    ]
-}
-
 extension ProfileView {
     final class ViewModel: ObservableObject {
-        @Published var profileItems = [ProfileItemData]()
+        @Published var profileItems = [ProfileItem]()
         @Published var authorizationError: String?
         @Published var dataInteractionError: String?
 
@@ -78,11 +32,11 @@ extension ProfileView {
         }
 
         private func setupBindings() {
-            profileItems = ProfileItemData.example
+            profileItems = ProfileItem.example
 
             healthKitManager.$profileData
                 .receive(on: DispatchQueue.main)
-                .map { [weak self] dictionaryData -> [ProfileItemData] in
+                .map { [weak self] dictionaryData -> [ProfileItem] in
                     guard let `self` = self else { return [] }
 
                     return self.itemsOrder.compactMap { itemType in
@@ -113,7 +67,7 @@ extension ProfileView {
             healthKitManager.requestAuthorizationAndLoadData()
         }
 
-        func handleProfileItemSelection(_ item: ProfileItemData) {
+        func handleProfileItemSelection(_ item: ProfileItem) {
             guard item.type.isEditable else { return }
             alertInputType = item.type
             alertInputValue = ""
@@ -130,11 +84,11 @@ extension ProfileView {
             dataInteractionError = nil
 
             switch type {
-            case .age, .sex: break
             case .height:
                 healthKitManager.saveHeight(value)
             case .weight:
                 healthKitManager.saveWeight(value)
+            default: break
             }
         }
     }
