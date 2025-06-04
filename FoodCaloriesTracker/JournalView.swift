@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct JournalView: View {
+    init(healthKitManager: HealthKitManager) {
+        //
+    }
+
     var body: some View {
         Text("Hello universe!")
     }

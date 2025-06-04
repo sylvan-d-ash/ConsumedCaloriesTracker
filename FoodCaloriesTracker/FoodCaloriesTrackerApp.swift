@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct FoodCaloriesTrackerApp: App {
+    @StateObject private var sharedHealthKitManager = HealthKitManager()
+    
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environmentObject(sharedHealthKitManager)
         }
     }
 }
