@@ -42,6 +42,12 @@ struct ProfileItemData: Identifiable {
         self.unitLabel = unitLabel ?? type.displayName
         self.value = value
     }
+
+    static let example: [ProfileItemData] = [
+        ProfileItemData(type: .age, value: "19"),
+        ProfileItemData(type: .height, value: "160"),
+        ProfileItemData(type: .weight, value: "60"),
+    ]
 }
 
 extension ProfileView {
@@ -49,5 +55,13 @@ extension ProfileView {
         @Published var profileItems = [ProfileItemData]()
         @Published var authorizationError: String?
         @Published var dataInteractionError: String?
+
+        init() {
+            setupBindings()
+        }
+
+        func setupBindings() {
+            profileItems = ProfileItemData.example
+        }
     }
 }
