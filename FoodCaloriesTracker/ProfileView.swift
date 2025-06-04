@@ -16,6 +16,7 @@ struct ProfileView: View {
                 if let authorizationError = viewModel.authorizationError {
                     Section {
                         Text(authorizationError)
+                            .font(.caption)
                             .foregroundStyle(.red)
                     }
                 }
