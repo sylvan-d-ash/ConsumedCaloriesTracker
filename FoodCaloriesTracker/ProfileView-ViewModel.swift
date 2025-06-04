@@ -10,7 +10,8 @@ import Combine
 
 extension ProfileView {
     final class ViewModel: ObservableObject {
-        @Published var profileItems = [ProfileItem]()
+        @Published var userInfoItems: [ProfileItem] = []
+        @Published var weightHeightItems: [ProfileItem] = []
         @Published var authorizationError: String?
         @Published var dataInteractionError: String?
 
@@ -20,7 +21,8 @@ extension ProfileView {
 
         private let healthKitManager = HealthKitManager()
         private var cancellables = Set<AnyCancellable>()
-        private let itemsOrder: [ProfileItemType] = [.age, .sex, .height, .weight]
+        private let userInfoItemOrder: [ProfileItemType] = [.age, .sex, .bloodType]
+        private let weightHeightItemOrder: [ProfileItemType] = [.weight, .height, .bmi]
 
         var alertTitle: String {
             guard let type = alertInputType else { return "" }
@@ -32,28 +34,20 @@ extension ProfileView {
         }
 
         private func setupBindings() {
-            profileItems = ProfileItem.example
-
             healthKitManager.$profileData
                 .receive(on: DispatchQueue.main)
-                .map { [weak self] dictionaryData -> [ProfileItem] in
-                    guard let `self` = self else { return [] }
-
-                    return self.itemsOrder.compactMap { itemType in
-                        dictionaryData[itemType]
-                    }
+                .sink { [weak self] dictionaryData in
+                    guard let `self` = self else { return }
+                    self.userInfoItems = self.userInfoItemOrder.compactMap { dictionaryData[$0] }
+                    self.weightHeightItems = self.weightHeightItemOrder.compactMap { dictionaryData[$0] }
                 }
-                .assign(to: &$profileItems)
+                .store(in: &cancellables)
 
             healthKitManager.$authorizationError
                 .receive(on: DispatchQueue.main)
-                .map { errorMessage -> String? in
-                    guard let errorMessage else { return nil }
-                    return "Authorization Error: \(errorMessage)"
-                }
+                .map { $0 != nil ? "Authorization Error: \($0!)" : nil }
                 .assign(to: &$authorizationError)
 
-            // Subscribe to dataFetchError from HealthKitManager
             healthKitManager.$dataFetchError
                 .receive(on: DispatchQueue.main)
                 .map { errorMessage -> String? in

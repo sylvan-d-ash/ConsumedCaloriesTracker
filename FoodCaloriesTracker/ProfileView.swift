@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+private struct ProfileRowView: View {
+    let item: ProfileItem
+
+    var body: some View {
+        HStack {
+            Text(item.unitLabel)
+
+            Spacer()
+
+            Text(item.value)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 struct ProfileView: View {
     @StateObject private var viewModel = ViewModel()
 
@@ -19,30 +34,32 @@ struct ProfileView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                } else if let dataError = viewModel.dataInteractionError {
+                }
+
+                if let dataError = viewModel.dataInteractionError {
                     Section {
                         Text(dataError)
+                            .font(.caption)
                             .foregroundStyle(
                                 dataError.lowercased().contains("error") || dataError.lowercased().contains("invalid") ? .orange : .blue
                             )
                     }
-                } else {
-                    Section("User Information") {
-                        ForEach(viewModel.profileItems) { item in
-                            HStack {
-                                Text(item.unitLabel)
+                }
 
-                                Spacer()
+                Section("User Information") {
+                    ForEach(viewModel.userInfoItems) { item in
+                        ProfileRowView(item: item)
+                    }
+                }
 
-                                Text(item.value)
-                                    .foregroundStyle(.secondary)
-                            }
+                Section("Weight & Height") {
+                    ForEach(viewModel.weightHeightItems) { item in
+                        ProfileRowView(item: item)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 viewModel.handleProfileItemSelection(item)
                             }
                             .disabled(item.type.isEditable == false)
-                        }
                     }
                 }
             }
