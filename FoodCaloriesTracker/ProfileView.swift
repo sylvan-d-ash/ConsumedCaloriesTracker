@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  ProfileView.swift
 //  FoodCaloriesTracker
 //
 //  Created by Sylvan  on 04/06/2025.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct ProfileView: View {
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -20,5 +20,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    NavigationStack {
+        ProfileView()
+    }
 }
