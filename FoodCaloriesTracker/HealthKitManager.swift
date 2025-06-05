@@ -114,75 +114,12 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    func fetchTodaysFoodLog() async throws -> [FoodItem] {
-        guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food) else {
-            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])
-        }
-
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(sampleType: foodCorrelationType,
-                                      predicate: predicateForToday,
-                                      limit: HKObjectQueryNoLimit,
-                                      sortDescriptors: [sortDescriptor]) {  _, samples, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                guard let correlations = samples as? [HKCorrelation] else {
-                    // No correlations found or type mismatch
-                    continuation.resume(returning: [])
-                    return
-                }
-
-                let foodItems = correlations.compactMap { Self.foodItem(from: $0) }
-                continuation.resume(returning: foodItems)
-            }
-            self.healthStore.execute(query)
-        }
-    }
-
-    func saveFoodItem(_ item: FoodItem) async throws -> FoodItem {
-        guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food), let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
-            throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create required HealthKit types for saving food!"])
-        }
-
-        let energyQuantity = HKQuantity(unit: .joule(), doubleValue: item.joules)
-        let energySample = HKQuantitySample(type: energyConsumedType, quantity: energyQuantity, start: .now, end: .now)
-        let samples: Set<HKSample> = [energySample]
-
-        let correlationMetadata: [String: Any] = [HKMetadataKeyFoodType: item.name]
-        let correlation = HKCorrelation(type: foodCorrelationType, start: .now, end: .now, objects: samples, metadata: correlationMetadata)
-
-        return try await withCheckedThrowingContinuation { continuation in
-            healthStore.save(correlation) { success, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                if success {
-                    continuation.resume(returning: item)
-                    return
-                }
-                continuation.resume(throwing: NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save food correlation without specific error message!"]))
-            }
-        }
-    }
-
     enum ErrorCode: Int {
         case invalidType = 200
         case weightUnavailable = 202
         case heightUnavailable = 203
         case dobUnavailable = 204
         case sexUnavailable = 205
-    }
-
-    private var todayStartEndDates: (Date, Date?) {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: .now)
-        let end = calendar.date(byAdding: .day, value: 1, to: start)
-        return (start, end)
     }
 
     private var predicateForToday: NSPredicate {
@@ -371,48 +308,77 @@ final class HealthKitManager: ObservableObject {
         }
         healthStore.execute(query)
     }
+}
 
-    static private func foodItem(from correlation: HKCorrelation) -> FoodItem? {
-        guard let name = correlation.metadata?[HKMetadataKeyFoodType] as? String,
-              let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)  else {
-            return nil
+// MARK: - JournalViewModel
+extension HealthKitManager {
+    func fetchTodaysFoodCorrelations() async throws -> [HKCorrelation] {
+        guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food) else {
+            throw NSError(domain: "HealthKitManager",
+                          code: HKError.Code.errorInvalidArgument.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])
         }
 
-        let energyConsumedSamples = correlation.objects(for: energyConsumedType)
-        guard let energyConsumedSample = energyConsumedSamples.first as? HKQuantitySample else {
-            return nil
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: foodCorrelationType,
+                                      predicate: predicateForToday,
+                                      limit: HKObjectQueryNoLimit,
+                                      sortDescriptors: [sortDescriptor]) {  _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                continuation.resume(returning: (samples as? [HKCorrelation]) ?? [])
+            }
+            self.healthStore.execute(query)
+        }
+    }
+
+    func saveFoodCorrelation(name: String, joules: Double, date: Date = .now) async throws -> HKCorrelation {
+        guard let foodCorrelationType = HKObjectType.correlationType(forIdentifier: .food),
+              let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
+            throw NSError(domain: "HealthKitManager",
+                          code: HKError.Code.errorInvalidArgument.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: "Unable to create required HealthKit types for saving food!"])
         }
 
-        return FoodItem(name: name, joules: energyConsumedSample.quantity.doubleValue(for: .joule()))
+        let energyQuantity = HKQuantity(unit: .joule(), doubleValue: joules)
+        let energySample = HKQuantitySample(type: energyConsumedType, quantity: energyQuantity, start: date, end: date)
+        let samples: Set<HKSample> = [energySample]
+
+        let correlationMetadata: [String: Any] = [HKMetadataKeyFoodType: name]
+        let correlation = HKCorrelation(type: foodCorrelationType, start: date, end: date, objects: samples, metadata: correlationMetadata)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            healthStore.save(correlation) { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if success {
+                    continuation.resume(returning: correlation)
+                    return
+                }
+
+                continuation.resume(throwing: NSError(domain: "HealthKitManager",
+                                                      code: HKError.Code.errorDatabaseInaccessible.rawValue,
+                                                      userInfo: [NSLocalizedDescriptionKey: "Failed to save food correlation!"]))
+            }
+        }
     }
 }
 
-// MARK: - EnergyView
+// MARK: - EnergyViewModel
 extension HealthKitManager {
     struct BMRCalculationInputs {
-        let weightInKilograms: Double
-        let heightInCentimeters: Double
-        let ageInYears: Int
-        let sex: HKBiologicalSex
-    }
-    struct BMRCalculationInputs2 {
         let weight: HKQuantity
         let height: HKQuantity
         let dateOfBirth: Date
         let sex: HKBiologicalSex
     }
 
-    struct EnergySummary {
-        var activeEnergyBurnedJoules: Double = 0.0
-        var restingEnergyBurnedJoules: Double = 0.0
-        var energyConsumedJoules: Double = 0.0
-
-        var netEnergyJoules: Double {
-            energyConsumedJoules - activeEnergyBurnedJoules - restingEnergyBurnedJoules
-        }
-    }
-
-    // fetchSumOfSamplesToday
     func fetchDailyTotal(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> Double {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
             throw NSError(domain: "HealthKitManager", code: 201, userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
@@ -435,7 +401,7 @@ extension HealthKitManager {
         }
     }
 
-    func fetchBMRCalculationInputs() async throws -> BMRCalculationInputs2 {
+    func fetchBMRCalculationInputs() async throws -> BMRCalculationInputs {
         guard let weightQuantity = try await fetchMostRecentSample(for: .bodyMass) else {
             throw NSError(domain: "HealthKitManager", code: 203, userInfo: [NSLocalizedDescriptionKey: "Weight data not available."])
         }
@@ -451,66 +417,11 @@ extension HealthKitManager {
             throw NSError(domain: "HealthKitManager", code: 207, userInfo: [NSLocalizedDescriptionKey: "Biological sex not set."])
         }
 
-        return BMRCalculationInputs2(
+        return BMRCalculationInputs(
             weight: weightQuantity,
             height: heightQuantity,
             dateOfBirth: dob,
             sex: sex
         )
     }
-
-    // BMR Calculation (Harris-Benedict equation
-    private func calculateBMR(inputs: BMRCalculationInputs) -> Double {
-        var bmr: Double = 0
-        if inputs.sex == .male {
-            bmr = calculateBMR(weight: inputs.weightInKilograms, height: inputs.heightInCentimeters, age: inputs.ageInYears, constant: 5)
-        } else if inputs.sex == .female {
-            bmr = calculateBMR(weight: inputs.weightInKilograms, height: inputs.heightInCentimeters, age: inputs.ageInYears, constant: -161)
-        } else {
-            let maleBMR = calculateBMR(weight: inputs.weightInKilograms, height: inputs.heightInCentimeters, age: inputs.ageInYears, constant: 5)
-            let femaleBMR = calculateBMR(weight: inputs.weightInKilograms, height: inputs.heightInCentimeters, age: inputs.ageInYears, constant: -161)
-            bmr = (maleBMR + femaleBMR) / 2.0
-        }
-        return bmr
-    }
-
-    /**
-     Using the Mifflin-St Jeor Equation (commonly used). It has the same bases for both Male and Female, with only the constant being different
-     */
-    private func calculateBMR(weight: Double, height: Double, age: Int, constant: Int) -> Double {
-        return (10 * weight) + (6.25 * height) - (5 * Double(age)) + Double(constant)
-    }
-
-//    private func calculateRestingEnergyBurnedToday() async throws -> Double {
-//        let inputs = try await fetchBMRCalculationInputs()
-//        let bmrKcalPerDay = calculateBMR(inputs: inputs)
-//        let (start, end) = todayStartEndDates
-//
-//        let secondsInFullDay: TimeInterval = end!.timeIntervalSince(start)
-//        let secondsElapsedToday: TimeInterval = Date.now.timeIntervalSince(start)
-//
-//        guard secondsInFullDay > 0 else { return 0.0 } // Avoid division by zero
-//        let percentOfDayComplete = max(0, min(1, secondsElapsedToday / secondsInFullDay))
-//
-//        let kilocaloriesBurnedToday = bmrKcalPerDay * percentOfDayComplete
-//
-//        // Convert Kcal to Joules for consistency if other values are in Joules
-//        let restingBurnQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: kilocaloriesBurnedToday)
-//        return restingBurnQuantity.doubleValue(for: .joule())
-//    }
-//
-//    func fetchEnergySummary() async throws -> EnergySummary {
-//        // Using async let to perform independent fetches concurrently
-//        async let activeEnergyBurnedJoules = fetchDailyTotal(for: .activeEnergyBurned, unit: .joule())
-//        async let energyConsumedJoules = fetchDailyTotal(for: .dietaryEnergyConsumed, unit: .joule())
-//        async let restingEnergyBurnedJoules = calculateRestingEnergyBurnedToday()
-//
-//        // await all resuts
-//        var summary = EnergySummary()
-//        summary.activeEnergyBurnedJoules = try await activeEnergyBurnedJoules
-//        summary.energyConsumedJoules = try await energyConsumedJoules
-//        summary.restingEnergyBurnedJoules = try await restingEnergyBurnedJoules
-//
-//        return summary
-//    }
 }
