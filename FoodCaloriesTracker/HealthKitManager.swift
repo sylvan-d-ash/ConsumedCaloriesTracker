@@ -396,10 +396,10 @@ extension HealthKitManager {
         let sex: HKBiologicalSex
     }
     struct BMRCalculationInputs2 {
-        let weight: HKQuantity?
-        let height: HKQuantity?
-        let dateOfBirth: Date?
-        let sex: HKBiologicalSex?
+        let weight: HKQuantity
+        let height: HKQuantity
+        let dateOfBirth: Date
+        let sex: HKBiologicalSex
     }
 
     struct EnergySummary {
