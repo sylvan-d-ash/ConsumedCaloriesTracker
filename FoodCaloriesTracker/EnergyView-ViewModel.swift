@@ -8,13 +8,6 @@
 import Foundation
 import HealthKit
 
-/*
- Resting
- Consumed - dietaryEnergyConsumed
- Burned - activeEnergyBurned
- Net Energy
- */
-
 extension EnergyView {
     struct EnergyDataStore {
         var activeEnergyBurnedJoules: Double = 0.0
@@ -35,7 +28,7 @@ extension EnergyView {
         private var energyFormatter: EnergyFormatter = {
             let formatter = EnergyFormatter()
             formatter.unitStyle = .long
-            formatter.isForFoodEnergyUse = true // This makes it default to kCal display
+            formatter.isForFoodEnergyUse = true // Default to kCal display
             formatter.numberFormatter.maximumFractionDigits = 0 // Usually calories are whole numbers
             return formatter
         }()
@@ -44,6 +37,34 @@ extension EnergyView {
 
         init(healthKitManager: HealthKitManager) {
             self.healthKitManager = healthKitManager
+        }
+
+        func stringFromJoules(_ joules: Double) -> String {
+            return energyFormatter.string(fromJoules: joules)
+        }
+
+        func refreshData() {
+            guard !isLoading else { return }
+
+            Task {
+                isLoading = true
+                errorMessage = nil
+
+                do {
+                    let activeJoules = try await healthKitManager.fetchDailyTotal(for: .activeEnergyBurned, unit: .joule())
+                    let consumedJoules = try await healthKitManager.fetchDailyTotal(for: .dietaryEnergyConsumed, unit: .joule())
+                    energyStore.activeEnergyBurnedJoules = activeJoules
+                    energyStore.energyConsumedJoules = consumedJoules
+
+                    let bmrInputs = try await healthKitManager.fetchBMRCalculationInputs()
+                    let calculatedRestingBurnJoules = calculateBasalBurnForToday(from: bmrInputs) ?? 0.0
+                    energyStore.restingEnergyBurnedJoules = calculatedRestingBurnJoules
+                } catch {
+                    errorMessage = "Failed to load energy data: \(error.localizedDescription)"
+                }
+
+                isLoading = false
+            }
         }
 
         private func calculateBasalBurnForToday(from inputs: HealthKitManager.BMRCalculationInputs2) -> Double? {
