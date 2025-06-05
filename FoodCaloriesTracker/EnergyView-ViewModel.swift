@@ -67,7 +67,7 @@ extension EnergyView {
             }
         }
 
-        private func calculateBasalBurnForToday(from inputs: HealthKitManager.BMRCalculationInputs2) -> Double? {
+        private func calculateBasalBurnForToday(from inputs: HealthKitManager.BMRCalculationInputs) -> Double? {
             let heightInCentimeters = inputs.height.doubleValue(for: HKUnit(from: "cm"))
             let weightInKilograms = inputs.weight.doubleValue(for: .gramUnit(with: .kilo))
 

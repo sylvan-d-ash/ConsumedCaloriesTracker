@@ -9,6 +9,7 @@ import SwiftUI
 
 private struct ProfileRowView: View {
     let item: ProfileItem
+    var valueColor: Color = .secondary
 
     var body: some View {
         HStack {
@@ -18,7 +19,7 @@ private struct ProfileRowView: View {
 
             Text(item.value)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(valueColor)
         }
     }
 }
@@ -33,21 +34,19 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
-                if let authorizationError = viewModel.authorizationError {
+                if let authMessage = viewModel.authorizationMessage {
                     Section {
-                        Text(authorizationError)
+                        Text(authMessage)
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
                 }
 
-                if let dataError = viewModel.dataInteractionError {
+                if let interactionMessage = viewModel.dataInteractionMessage {
                     Section {
-                        Text(dataError)
+                        Text(interactionMessage)
                             .font(.caption)
-                            .foregroundStyle(
-                                dataError.lowercased().contains("error") || dataError.lowercased().contains("invalid") ? .orange : .blue
-                            )
+                            .foregroundStyle(determineMessageColor(for: interactionMessage))
                     }
                 }
 
@@ -59,12 +58,16 @@ struct ProfileView: View {
 
                 Section("Weight & Height") {
                     ForEach(viewModel.weightHeightItems) { item in
-                        ProfileRowView(item: item)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
+                        if item.type.isEditable {
+                            Button {
                                 viewModel.handleProfileItemSelection(item)
+                            } label: {
+                                ProfileRowView(item: item)
+                                    .foregroundStyle(.primary)
                             }
-                            .disabled(item.type.isEditable == false)
+                        } else {
+                            ProfileRowView(item: item)
+                        }
                     }
                 }
             }
@@ -73,7 +76,7 @@ struct ProfileView: View {
                 viewModel.onViewAppear()
             }
             .alert(viewModel.alertTitle, isPresented: $viewModel.showingInputAlert, presenting: viewModel.alertInputType) { _ in
-                TextField("Enter new value", text: $viewModel.alertInputValue)
+                TextField(alertTextFieldPlaceholder(), text: $viewModel.alertInputValue)
                     .keyboardType(.decimalPad)
 
                 Button("Save") {
@@ -82,8 +85,41 @@ struct ProfileView: View {
 
                 Button("Cancel", role: .cancel) {}
             } message: { type in
-                Text("Enter the new value for \(type.rawValue.lowercased())")
+                Text(alertMessageText(for: type))
             }
+        }
+    }
+
+    private func determineMessageColor(for message: String) -> Color {
+        let lowercasedMessage = message.lowercased()
+        if lowercasedMessage.contains("error") || lowercasedMessage.contains("invalid") || lowercasedMessage.contains("fail") {
+            return .orange
+        } else if lowercasedMessage.contains("success") {
+            return .green
+        }
+        return .blue // Default for informational messages
+    }
+
+    private func alertTextFieldPlaceholder() -> String {
+        guard let type = viewModel.alertInputType else { return "Enter new value" }
+        switch type {
+        case .height:
+            return "Enter height in meters (e.g., 1.75)"
+        case .weight:
+            return "Enter weight in kilograms (e.g., 68.5)"
+        default:
+            return "Enter new value"
+        }
+    }
+
+    private func alertMessageText(for itemType: ProfileItemType) -> String {
+        switch itemType {
+        case .height:
+            return "Please enter your height in meters (m)."
+        case .weight:
+            return "Please enter your weight in kilograms (kg)."
+        default:
+            return "Enter the new value for \(itemType.rawValue.lowercased())."
         }
     }
 }

@@ -14,8 +14,8 @@ extension ProfileView {
         @Published var userInfoItems: [ProfileItem] = []
         @Published var weightHeightItems: [ProfileItem] = []
 
-        @Published var authorizationError: String?
-        @Published var dataInteractionError: String?
+        @Published var authorizationMessage: String?
+        @Published var dataInteractionMessage: String?
 
         @Published var showingInputAlert = false
         @Published var alertInputType: ProfileItemType?
@@ -61,11 +61,11 @@ extension ProfileView {
         func saveNewValue() {
             guard let type = alertInputType else { return }
             guard let value = Double(alertInputValue.replacingOccurrences(of: ",", with: ".")) else {
-                dataInteractionError = "Invalid input: \(alertInputValue) is not a valid number"
+                dataInteractionMessage = "Invalid input: \(alertInputValue) is not a valid number"
                 return
             }
 
-            dataInteractionError = nil
+            dataInteractionMessage = nil
 
             Task {
                 do {
@@ -79,7 +79,7 @@ extension ProfileView {
                     default: break
                     }
                 } catch {
-                    dataInteractionError = "Error saving \(type.displayName): \(error.localizedDescription)"
+                    dataInteractionMessage = "Error saving \(type.displayName): \(error.localizedDescription)"
                 }
             }
         }
@@ -89,7 +89,7 @@ extension ProfileView {
                 try await healthKitManager.requestAuthorizationAndLoadData()
                 await fetchAllProfileData()
             } catch {
-                authorizationError = "Authorization Error: \(error.localizedDescription)"
+                authorizationMessage = "Authorization Error: \(error.localizedDescription)"
             }
         }
 
