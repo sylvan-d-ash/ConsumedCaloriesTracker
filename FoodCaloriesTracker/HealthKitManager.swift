@@ -136,11 +136,10 @@ final class HealthKitManager: ObservableObject {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])
         }
 
-        let predicate = todayPredicate()
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(sampleType: foodCorrelationType,
-                                      predicate: predicate,
+                                      predicate: predicateForToday,
                                       limit: HKObjectQueryNoLimit,
                                       sortDescriptors: [sortDescriptor]) {  _, samples, error in
                 if let error {
@@ -188,19 +187,20 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    func fetchSamplesSumForToday(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> Double {
+    private func fetchDailyTotal(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> Double {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
             throw NSError(domain: "HealthKitManager", code: 201, userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
         }
 
-        let predicate = todayPredicate()
-
         return try await withCheckedThrowingContinuation { continuation in
-            let query = HKStatisticsQuery(quantityType: quantityType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, statistics, error in
+            let query = HKStatisticsQuery(quantityType: quantityType,
+                                          quantitySamplePredicate: predicateForToday,
+                                          options: .cumulativeSum) { _, statistics, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
                 }
+
                 let sum = statistics?.sumQuantity()
                 let value = sum?.doubleValue(for: unit) ?? 0.0
                 continuation.resume(returning: value)
@@ -259,7 +259,7 @@ final class HealthKitManager: ObservableObject {
     func calculateRestingEnergyBurnedToday() async throws -> Double {
         let inputs = try await fetchBMRCalculationInputs()
         let bmrKcalPerDay = calculateBMR(inputs: inputs)
-        let (start, end) = datesFromToday()
+        let (start, end) = todayStartEndDates
 
         let secondsInFullDay: TimeInterval = end!.timeIntervalSince(start)
         let secondsElapsedToday: TimeInterval = Date.now.timeIntervalSince(start)
@@ -276,8 +276,8 @@ final class HealthKitManager: ObservableObject {
 
     func fetchEnergySummary() async throws -> EnergySummary {
         // Using async let to perform independent fetches concurrently
-        async let activeEnergyBurnedJoules = fetchSamplesSumForToday(for: .activeEnergyBurned, unit: .joule())
-        async let energyConsumedJoules = fetchSamplesSumForToday(for: .dietaryEnergyConsumed, unit: .joule())
+        async let activeEnergyBurnedJoules = fetchDailyTotal(for: .activeEnergyBurned, unit: .joule())
+        async let energyConsumedJoules = fetchDailyTotal(for: .dietaryEnergyConsumed, unit: .joule())
         async let restingEnergyBurnedJoules = calculateRestingEnergyBurnedToday()
 
         // await all resuts
@@ -289,15 +289,15 @@ final class HealthKitManager: ObservableObject {
         return summary
     }
 
-    private func datesFromToday() -> (Date, Date?) {
+    private var todayStartEndDates: (Date, Date?) {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: .now)
         let end = calendar.date(byAdding: .day, value: 1, to: start)
         return (start, end)
     }
 
-    private func todayPredicate() -> NSPredicate {
-        let (start, end) = datesFromToday()
+    private var predicateForToday: NSPredicate {
+        let (start, end) = todayStartEndDates
         return HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
     }
 
