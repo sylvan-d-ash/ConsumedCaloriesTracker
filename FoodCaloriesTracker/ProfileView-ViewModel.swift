@@ -7,11 +7,13 @@
 
 import Foundation
 import Combine
+import HealthKit
 
 extension ProfileView {
     final class ViewModel: ObservableObject {
         @Published var userInfoItems: [ProfileItem] = []
         @Published var weightHeightItems: [ProfileItem] = []
+
         @Published var authorizationError: String?
         @Published var dataInteractionError: String?
 
@@ -20,9 +22,12 @@ extension ProfileView {
         @Published var alertInputValue: String = ""
 
         private let healthKitManager: HealthKitManager
-        private var cancellables = Set<AnyCancellable>()
+
         private let userInfoItemOrder: [ProfileItemType] = [.age, .sex, .bloodType]
         private let weightHeightItemOrder: [ProfileItemType] = [.weight, .height, .bmi]
+
+        private var currentHeightMeters: Double?
+        private var currentWeightKilograms: Double?
 
         var alertTitle: String {
             guard let type = alertInputType else { return "" }
@@ -31,7 +36,26 @@ extension ProfileView {
 
         init(healthKitManager: HealthKitManager) {
             self.healthKitManager = healthKitManager
-            setupBindings()
+            self.userInfoItems = self.userInfoItemOrder.map { ProfileItem(type: $0) }
+            self.weightHeightItems = self.weightHeightItemOrder.map { ProfileItem(type: $0) }
+        }
+
+        func onViewAppear() {
+            Task { await requestAuthorizationAndLoadProfileData() }
+        }
+
+        private func requestAuthorizationAndLoadProfileData() async {
+            do {
+                try await healthKitManager.requestAuthorizationAndLoadData()
+                await fetchAllProfileData()
+            } catch {
+                authorizationError = "Authorization Error: \(error.localizedDescription)"
+            }
+        }
+
+        private func fetchAllProfileData() async {
+            await withTaskGroup(of: Void.self) { group in
+            }
         }
 
         private func setupBindings() {
