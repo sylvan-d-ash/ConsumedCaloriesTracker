@@ -26,3 +26,9 @@ Information written:
 - height
 - weight
 - food consumed
+
+## Attributions
+
+For the TabBar, I referenced the code for [BubbleTabBar](https://github.com/kenfai/KavSoft-Tutorials-iOS/tree/main/BubbleTabBar) by [kenfai](https://github.com/kenfai).
+
+I got the app idea from [Darktt](https://github.com/Darktt) when I came across his [HealthKit-Swift](https://github.com/Darktt/HealthKit-Swift/tree/master), and I decided to make a similar app in SwiftUI
