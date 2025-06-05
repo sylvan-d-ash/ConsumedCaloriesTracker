@@ -6,7 +6,7 @@
 //
 
 import Combine
-import SwiftUI
+import HealthKit
 
 extension JournalView {
     @MainActor
@@ -30,7 +30,6 @@ extension JournalView {
         }
 
         func onAppear() {
-            healthKitManager.requestAuthorizationAndLoadData()
             Task {
                 await fetchTodaysFoodLog()
             }
@@ -44,7 +43,7 @@ extension JournalView {
 
         func foodItemSelectedFromPicker(_ item: FoodItem) {
             Task {
-                await saveFoodItemToHealthStore(item)
+                await addFoodItemToJournal(item)
             }
         }
     }
@@ -56,7 +55,21 @@ private extension JournalView.ViewModel {
         errorMessage = nil
 
         do {
-            loggedFoodItems = try await healthKitManager.fetchTodaysFoodLog()
+            let correlations = try await healthKitManager.fetchTodaysFoodCorrelations()
+            loggedFoodItems = correlations.compactMap { correlation in
+                guard let name = correlation.metadata?[HKMetadataKeyFoodType] as? String,
+                      let energyConsumedType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed)  else {
+                    return nil
+                }
+                
+                let energyConsumedSamples = correlation.objects(for: energyConsumedType)
+                guard let energyConsumedSample = energyConsumedSamples.first as? HKQuantitySample else {
+                    return nil
+                }
+
+                let joules: Double = energyConsumedSample.quantity.doubleValue(for: .joule())
+                return FoodItem(name: name, joules: joules)
+            }
         } catch {
             print("Error fetching food log: \(error)")
             errorMessage = "Failed to load journal: \(error.localizedDescription)"
@@ -65,18 +78,16 @@ private extension JournalView.ViewModel {
         isLoading = false
     }
 
-    func saveFoodItemToHealthStore(_ foodItem: FoodItem) async {
+    func addFoodItemToJournal(_ item: FoodItem) async {
         isLoading = true
         errorMessage = nil
 
         do {
-            let item = try await healthKitManager.saveFoodItem(foodItem)
+            _ = try await healthKitManager.saveFoodCorrelation(name: item.name, joules: item.joules)
             loggedFoodItems.insert(item, at: 0)
         } catch {
-            errorMessage = "Failed to save food: \(error.localizedDescription)"
             print("Error saving food item: \(error)")
+            errorMessage = "Failed to save food: \(error.localizedDescription)"
         }
-
-        isLoading = false
     }
 }
