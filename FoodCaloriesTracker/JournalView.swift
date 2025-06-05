@@ -20,22 +20,22 @@ struct JournalView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if viewModel.isLoading && viewModel.loggedFoodItems.isEmpty {
-                    ProgressView("Loading journal items...")
-                        .padding()
-                } else if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .padding()
-                } else if viewModel.loggedFoodItems.isEmpty {
-                    ContentUnavailableView(
-                        "No food logged today",
-                        systemImage: "fork.knife.circle",
-                        description: Text("Tap the '+' button to add a food item.")
-                    )
-                } else {
-                    List {
+                List {
+                    if viewModel.isLoading && viewModel.loggedFoodItems.isEmpty {
+                        ProgressView("Loading journal items...")
+                            .padding()
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .padding()
+                    } else if viewModel.loggedFoodItems.isEmpty {
+                        ContentUnavailableView(
+                            "No food logged today",
+                            systemImage: "fork.knife.circle",
+                            description: Text("Tap the '+' button to add a food item.")
+                        )
+                    } else {
                         ForEach(viewModel.loggedFoodItems) { item in
                             HStack {
                                 Text(item.name)
