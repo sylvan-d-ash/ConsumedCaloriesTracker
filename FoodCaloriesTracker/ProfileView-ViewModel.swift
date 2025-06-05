@@ -10,6 +10,7 @@ import Combine
 import HealthKit
 
 extension ProfileView {
+    @MainActor
     final class ViewModel: ObservableObject {
         @Published var userInfoItems: [ProfileItem] = []
         @Published var weightHeightItems: [ProfileItem] = []

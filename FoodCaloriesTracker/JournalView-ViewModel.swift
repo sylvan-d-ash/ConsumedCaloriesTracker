@@ -89,5 +89,7 @@ private extension JournalView.ViewModel {
             print("Error saving food item: \(error)")
             errorMessage = "Failed to save food: \(error.localizedDescription)"
         }
+
+        isLoading = false
     }
 }
