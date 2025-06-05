@@ -36,11 +36,9 @@ extension JournalView {
             }
         }
 
-        func handleScenePhaseChange(_ newPhase: ScenePhase) {
-            if newPhase == .active {
-                Task {
-                    await fetchTodaysFoodLog()
-                }
+        func onBecameActive() {
+            Task {
+                await fetchTodaysFoodLog()
             }
         }
 

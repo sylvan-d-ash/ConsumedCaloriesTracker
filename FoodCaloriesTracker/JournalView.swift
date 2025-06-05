@@ -72,8 +72,10 @@ struct JournalView: View {
             .onAppear {
                 viewModel.onAppear()
             }
-            .onChange(of: scenePhase) { oldValue, newValue in
-                viewModel.handleScenePhaseChange(newValue)
+            .onChange(of: scenePhase) { _, newValue in
+                if newValue == .active {
+                    viewModel.onBecameActive()
+                }
             }
         }
     }
