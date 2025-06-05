@@ -9,6 +9,23 @@ import Combine
 import HealthKit
 
 final class HealthKitManager: ObservableObject {
+    struct BMRCalculationInputs {
+        let weightInKilograms: Double
+        let heightInCentimeters: Double
+        let ageInYears: Int
+        let sex: HKBiologicalSex
+    }
+
+    struct EnergySummary {
+        var activeEnergyBurnedJoules: Double = 0.0
+        var restingEnergyBurnedJoules: Double = 0.0
+        var energyConsumedJoules: Double = 0.0
+
+        var netEnergyJoules: Double {
+            energyConsumedJoules - activeEnergyBurnedJoules - restingEnergyBurnedJoules
+        }
+    }
+
     @Published var authorizationError: String?
     @Published var dataFetchError: String?
     @Published var profileData: [ProfileItemType: ProfileItem] = [
@@ -119,11 +136,7 @@ final class HealthKitManager: ObservableObject {
             throw NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create food correlation type."])
         }
 
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: .now)
-        let end = calendar.date(byAdding: .day, value: 1, to: start)
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
-
+        let predicate = todayPredicate()
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(sampleType: foodCorrelationType,
@@ -173,6 +186,119 @@ final class HealthKitManager: ObservableObject {
                 continuation.resume(throwing: NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to save food correlation without specific error message!"]))
             }
         }
+    }
+
+    func fetchSamplesSumForToday(for identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> Double {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            throw NSError(domain: "HealthKitManager", code: 201, userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
+        }
+
+        let predicate = todayPredicate()
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(quantityType: quantityType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let sum = statistics?.sumQuantity()
+                let value = sum?.doubleValue(for: unit) ?? 0.0
+                continuation.resume(returning: value)
+            }
+            self.healthStore.execute(query)
+        }
+    }
+
+    func fetchBMRCalculationInputs() async throws -> BMRCalculationInputs {
+        guard let weightQuantity = try await fetchMostRecentSample(for: .bodyMass) else {
+            throw NSError(domain: "HealthKitManager", code: 203, userInfo: [NSLocalizedDescriptionKey: "Weight data not available."])
+        }
+        let weightInKilograms = weightQuantity.doubleValue(for: .gramUnit(with: .kilo))
+
+        guard let heightQuantity = try await fetchMostRecentSample(for: .height) else {
+            throw NSError(domain: "HealthKitManager", code: 204, userInfo: [NSLocalizedDescriptionKey: "Height data not available."])
+        }
+        let heightInCentimeters = heightQuantity.doubleValue(for: HKUnit(from: "cm"))
+
+        guard let dob = try healthStore.dateOfBirthComponents().date else {
+            throw NSError(domain: "HealthKitManager", code: 205, userInfo: [NSLocalizedDescriptionKey: "Date of birth not available."])
+        }
+        let ageComponents = Calendar.current.dateComponents([.year], from: dob, to: .now)
+        guard let ageInYears = ageComponents.year else {
+            throw NSError(domain: "HealthKitManager", code: 206, userInfo: [NSLocalizedDescriptionKey: "Could not calculate age."])
+        }
+
+        let sex = try healthStore.biologicalSex().biologicalSex
+        guard sex != .notSet else {
+            throw NSError(domain: "HealthKitManager", code: 207, userInfo: [NSLocalizedDescriptionKey: "Biological sex not set."])
+        }
+
+        return BMRCalculationInputs(
+            weightInKilograms: weightInKilograms,
+            heightInCentimeters: heightInCentimeters,
+            ageInYears: ageInYears,
+            sex: sex
+        )
+    }
+
+    // BMR Calculation (Harris-Benedict equation
+    private func calculateBMR(inputs: BMRCalculationInputs) -> Double {
+        var bmr: Double = 0
+        if inputs.sex == .male {
+            bmr = 66.0 + (13.8 * inputs.weightInKilograms) + (5.0 * inputs.heightInCentimeters) - (6.8 * Double(inputs.ageInYears))
+        } else if inputs.sex == .female {
+            bmr = 655.0 + (9.6 * inputs.weightInKilograms) + (1.8 * inputs.heightInCentimeters) - (4.7 * Double(inputs.ageInYears))
+        } else {
+            let maleBMR = 66.0 + (13.8 * inputs.weightInKilograms) + (5.0 * inputs.heightInCentimeters) - (6.8 * Double(inputs.ageInYears))
+            let femaleBMR = 655.0 + (9.6 * inputs.weightInKilograms) + (1.8 * inputs.heightInCentimeters) - (4.7 * Double(inputs.ageInYears))
+            bmr = (maleBMR + femaleBMR) / 2.0
+        }
+        return bmr
+    }
+
+    func calculateRestingEnergyBurnedToday() async throws -> Double {
+        let inputs = try await fetchBMRCalculationInputs()
+        let bmrKcalPerDay = calculateBMR(inputs: inputs)
+        let (start, end) = datesFromToday()
+
+        let secondsInFullDay: TimeInterval = end!.timeIntervalSince(start)
+        let secondsElapsedToday: TimeInterval = Date.now.timeIntervalSince(start)
+
+        guard secondsInFullDay > 0 else { return 0.0 } // Avoid division by zero
+        let percentOfDayComplete = max(0, min(1, secondsElapsedToday / secondsInFullDay))
+
+        let kilocaloriesBurnedToday = bmrKcalPerDay * percentOfDayComplete
+
+        // Convert Kcal to Joules for consistency if other values are in Joules
+        let restingBurnQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: kilocaloriesBurnedToday)
+        return restingBurnQuantity.doubleValue(for: .joule())
+    }
+
+    func fetchEnergySummary() async throws -> EnergySummary {
+        // Using async let to perform independent fetches concurrently
+        async let activeEnergyBurnedJoules = fetchSamplesSumForToday(for: .activeEnergyBurned, unit: .joule())
+        async let energyConsumedJoules = fetchSamplesSumForToday(for: .dietaryEnergyConsumed, unit: .joule())
+        async let restingEnergyBurnedJoules = calculateRestingEnergyBurnedToday()
+
+        // await all resuts
+        var summary = EnergySummary()
+        summary.activeEnergyBurnedJoules = try await activeEnergyBurnedJoules
+        summary.energyConsumedJoules = try await energyConsumedJoules
+        summary.restingEnergyBurnedJoules = try await restingEnergyBurnedJoules
+
+        return summary
+    }
+
+    private func datesFromToday() -> (Date, Date?) {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: .now)
+        let end = calendar.date(byAdding: .day, value: 1, to: start)
+        return (start, end)
+    }
+
+    private func todayPredicate() -> NSPredicate {
+        let (start, end) = datesFromToday()
+        return HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
     }
 
     private func updateUserAge() {
@@ -316,6 +442,27 @@ final class HealthKitManager: ObservableObject {
         updateProfileData(for: .bmi, value: value)
     }
 
+    func fetchMostRecentSample(for identifier: HKQuantityTypeIdentifier) async throws -> HKQuantity? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            throw NSError(domain: "HealthKitManager", code: 201, userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: quantityType, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: (samples?.first as? HKQuantitySample)?.quantity)
+            }
+            self.healthStore.execute(query)
+        }
+    }
+
+    // TODO: replace with fetchMostRecentSample()
     private func getMostRecentSample(for sampleType: HKSampleType, completion: @escaping (HKQuantitySample?, Error?) -> Void) {
         let mostRecentPredicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
