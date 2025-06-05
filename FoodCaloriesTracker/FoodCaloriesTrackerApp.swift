@@ -13,7 +13,7 @@ struct FoodCaloriesTrackerApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            MainTabView(healthKitManager: sharedHealthKitManager)
                 .environmentObject(sharedHealthKitManager)
         }
     }
