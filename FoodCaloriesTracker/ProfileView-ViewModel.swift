@@ -44,53 +44,18 @@ extension ProfileView {
             Task { await requestAuthorizationAndLoadProfileData() }
         }
 
-        private func requestAuthorizationAndLoadProfileData() async {
-            do {
-                try await healthKitManager.requestAuthorizationAndLoadData()
-                await fetchAllProfileData()
-            } catch {
-                authorizationError = "Authorization Error: \(error.localizedDescription)"
-            }
-        }
-
-        private func fetchAllProfileData() async {
-            await withTaskGroup(of: Void.self) { group in
-            }
-        }
-
-        private func setupBindings() {
-            healthKitManager.$profileData
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] dictionaryData in
-                    guard let `self` = self else { return }
-                    self.userInfoItems = self.userInfoItemOrder.compactMap { dictionaryData[$0] }
-                    self.weightHeightItems = self.weightHeightItemOrder.compactMap { dictionaryData[$0] }
-                }
-                .store(in: &cancellables)
-
-            healthKitManager.$authorizationError
-                .receive(on: DispatchQueue.main)
-                .map { $0 != nil ? "Authorization Error: \($0!)" : nil }
-                .assign(to: &$authorizationError)
-
-            healthKitManager.$dataFetchError
-                .receive(on: DispatchQueue.main)
-                .map { errorMessage -> String? in
-                    guard let errorMessage, !errorMessage.isEmpty else { return nil }
-                    return "Data Error: \(errorMessage)"
-                }
-                .assign(to: &$dataInteractionError)
-        }
-
-        func onViewAppear() {
-            healthKitManager.requestAuthorizationAndLoadData()
-        }
-
         func handleProfileItemSelection(_ item: ProfileItem) {
             guard item.type.isEditable else { return }
             alertInputType = item.type
-            alertInputValue = ""
             showingInputAlert = true
+
+            if item.type == .height, let currentHeightMeters = currentHeightMeters {
+                alertInputValue = String(format: "%.2f", currentHeightMeters) // Edit in meters
+            } else if item.type == .weight, let currentWeightKilograms = currentWeightKilograms {
+                alertInputValue = String(format: "%.1f", currentWeightKilograms) // Edit in kg
+            } else {
+                alertInputValue = ""
+            }
         }
 
         func saveNewValue() {
@@ -102,12 +67,160 @@ extension ProfileView {
 
             dataInteractionError = nil
 
-            switch type {
-            case .height:
-                healthKitManager.saveHeight(value)
-            case .weight:
-                healthKitManager.saveWeight(value)
-            default: break
+            Task {
+                do {
+                    switch type {
+                    case .height:
+                        try await healthKitManager.saveHeightInMeters(value)
+                        await fetchAndUpdateUserHeight()
+                    case .weight:
+                        try await healthKitManager.saveWeightInKilograms(value)
+                        await fetchAndUpdateUserWeight()
+                    default: break
+                    }
+                } catch {
+                    dataInteractionError = "Error saving \(type.displayName): \(error.localizedDescription)"
+                }
+            }
+        }
+
+        private func requestAuthorizationAndLoadProfileData() async {
+            do {
+                try await healthKitManager.requestAuthorizationAndLoadData()
+                await fetchAllProfileData()
+            } catch {
+                authorizationError = "Authorization Error: \(error.localizedDescription)"
+            }
+        }
+
+        private func fetchAllProfileData() async {
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await self.fetchAndUpdateUserAge() }
+                group.addTask { await self.fetchAndUpdateUserSex() }
+                group.addTask { await self.fetchAndUpdateBloodType() }
+                group.addTask { await self.fetchAndUpdateUserHeight() }
+                group.addTask { await self.fetchAndUpdateUserWeight() }
+            }
+        }
+
+        private func fetchAndUpdateUserAge() async {
+            do {
+                guard let dob = try healthKitManager.fetchDateOfBirth() else {
+                    updateProfileItem(for: .age)
+                    return
+                }
+
+                let ageComponents = Calendar.current.dateComponents([.year], from: dob, to: .now)
+                let age = ageComponents.year ?? 0
+                updateProfileItem(for: .age, value: "\(age) yrs")
+            } catch {
+                print("Error fetching age: \(error.localizedDescription)")
+                updateProfileItem(for: .age)
+            }
+        }
+
+        private func fetchAndUpdateUserSex() async {
+            do {
+                let sex = try healthKitManager.fetchBiologicalSex()
+                let value: String
+                switch sex {
+                case .notSet: value = NSLocalizedString("Not set", comment: "")
+                case .female: value = NSLocalizedString("Female", comment: "")
+                case .male: value = NSLocalizedString("Male", comment: "")
+                case .other: value = NSLocalizedString("Other", comment: "")
+                @unknown default: value = NSLocalizedString("Not available", comment: "")
+                }
+                updateProfileItem(for: .sex, value: value)
+            } catch {
+                print("Error fetching sex: \(error.localizedDescription)")
+                updateProfileItem(for: .sex)
+            }
+        }
+
+        private func fetchAndUpdateBloodType() async {
+            do {
+                let bloodType = try healthKitManager.fetchBloodType()
+                let value: String
+                switch bloodType {
+                case .aPositive: value = "A+"
+                case .aNegative: value = "A-"
+                case .bPositive: value = "B+"
+                case .bNegative: value = "B-"
+                case .abPositive: value = "AB+"
+                case .abNegative: value = "AB-"
+                case .oPositive: value = "O+"
+                case .oNegative: value = "O-"
+                case .notSet: value = NSLocalizedString("Not set", comment: "")
+                @unknown default: value = NSLocalizedString("Not available", comment: "")
+                }
+                updateProfileItem(for: .bloodType, value: value)
+            } catch {
+                print("Error fetching blood type: \(error.localizedDescription)")
+                updateProfileItem(for: .bloodType)
+            }
+        }
+
+        private func fetchAndUpdateUserHeight() async {
+            do {
+                guard let quantity = try await healthKitManager.fetchMostRecentQuantitySample(for: .height) else {
+                    updateProfileItem(for: .height)
+                    currentHeightMeters = nil
+                    calculateAndUpdateBMI()
+                    return
+                }
+                let height = quantity.doubleValue(for: .meter())
+                currentHeightMeters = height
+
+                let formatter = LengthFormatter()
+                formatter.isForPersonHeightUse = true
+                updateProfileItem(for: .height, value: formatter.string(fromMeters: height))
+                calculateAndUpdateBMI()
+            } catch {
+                print("Error fetching height: \(error.localizedDescription)")
+                updateProfileItem(for: .height)
+                currentHeightMeters = nil
+                calculateAndUpdateBMI()
+            }
+        }
+
+        private func fetchAndUpdateUserWeight() async {
+            do {
+                guard let quantity = try await healthKitManager.fetchMostRecentQuantitySample(for: .bodyMass) else {
+                    updateProfileItem(for: .weight)
+                    currentWeightKilograms = nil
+                    calculateAndUpdateBMI()
+                    return
+                }
+                let weight = quantity.doubleValue(for: .gramUnit(with: .kilo))
+                currentWeightKilograms = weight
+
+                let formatter = MassFormatter()
+                formatter.isForPersonMassUse = true
+                updateProfileItem(for: .weight, value: formatter.string(fromKilograms: weight))
+                calculateAndUpdateBMI()
+            } catch {
+                print("Error fetching weight: \(error.localizedDescription)")
+                updateProfileItem(for: .weight)
+                currentWeightKilograms = nil
+                calculateAndUpdateBMI()
+            }
+        }
+
+        private func calculateAndUpdateBMI() {
+            guard let height = currentHeightMeters, height > 0,
+                  let weight = currentWeightKilograms, weight > 0 else {
+                updateProfileItem(for: .bmi, value: NSLocalizedString("N/A", comment: "BMI not available due to missing height/weight"))
+                return
+            }
+            let bmi = weight / (height * height)
+            updateProfileItem(for: .bmi, value: String(format: "%.1f", bmi))
+        }
+
+        private func updateProfileItem(for type: ProfileItemType, value: String = NSLocalizedString("Not available", comment: "")) {
+            if let index = userInfoItems.firstIndex(where: { $0.type == type }) {
+                userInfoItems[index].value = value
+            } else if let index = weightHeightItems.firstIndex(where: { $0.type == type }) {
+                weightHeightItems[index].value = value
             }
         }
     }

@@ -81,6 +81,31 @@ final class HealthKitManager: ObservableObject {
         try healthStore.bloodType().bloodType
     }
 
+    func fetchMostRecentQuantitySample(for identifier: HKQuantityTypeIdentifier) async throws -> HKQuantity? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
+            throw NSError(domain: "HealthKitManager",
+                          code: HKError.Code.errorInvalidArgument.rawValue,
+                          userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: quantityType,
+                                      predicate: predicate,
+                                      limit: 1,
+                                      sortDescriptors: [sortDescriptor]) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: (samples?.first as? HKQuantitySample)?.quantity)
+            }
+            self.healthStore.execute(query)
+        }
+    }
+
     func saveHeightInMeters(_ height: Double, date: Date = .now) async throws {
         guard let type = HKQuantityType.quantityType(forIdentifier: .height) else {
             throw NSError(domain: "HealthKitManager",
@@ -121,172 +146,6 @@ final class HealthKitManager: ObservableObject {
                                                       code: HKError.Code.errorDatabaseInaccessible.rawValue,
                                                       userInfo: [NSLocalizedDescriptionKey: "Failed to save data"]))
             }
-        }
-    }
-
-//    private func updateUserAge() {
-//        do {
-//            let dateOfBirth = try healthStore.dateOfBirthComponents().date
-//            guard let dateOfBirth else {
-//                updateProfileData(for: .age)
-//                return
-//            }
-//
-//            let components = Calendar.current.dateComponents([.year], from: dateOfBirth, to: .now)
-//            let userAge = components.year ?? 0
-//            updateProfileData(for: .age, value: "\(userAge)")
-//        } catch {
-//            print("Error fetching date of birth: \(error.localizedDescription)")
-//            updateProfileData(for: .age)
-//        }
-//    }
-//
-//    private func updateUserSex() {
-//        do {
-//            var value: String = ""
-//            let sex = try healthStore.biologicalSex()
-//            switch sex.biologicalSex {
-//            case .notSet: value = NSLocalizedString("Not set", comment: "")
-//            case .female: value = NSLocalizedString("Female", comment: "")
-//            case .male: value = NSLocalizedString("Male", comment: "")
-//            case .other: value = NSLocalizedString("Other", comment: "")
-//            @unknown default: value = NSLocalizedString("Not available", comment: "")
-//            }
-//
-//            updateProfileData(for: .sex, value: value)
-//        } catch {
-//            print("Error fetching biological sex: \(error.localizedDescription)")
-//            updateProfileData(for: .sex)
-//        }
-//    }
-//
-//    private func updateBloodType() {
-//        do {
-//            var value = ""
-//            let bloodTypeObject = try healthStore.bloodType()
-//            switch bloodTypeObject.bloodType {
-//            case .aPositive: value = "A+"
-//            case .aNegative: value = "A-"
-//            case .bPositive: value = "B+"
-//            case .bNegative: value = "B-"
-//            case .abPositive: value = "AB+"
-//            case .abNegative: value = "AB-"
-//            case .oPositive: value = "O+"
-//            case .oNegative: value = "O-"
-//            case .notSet: value = NSLocalizedString("Not set", comment: "")
-//            @unknown default: value = NSLocalizedString("Not available", comment: "")
-//            }
-//            updateProfileData(for: .bloodType, value: value)
-//        } catch {
-//            print("Error fetching blood type: \(error.localizedDescription)")
-//            updateProfileData(for: .bloodType)
-//        }
-//    }
-//
-//    private func updateUserHeight() {
-//        guard let heightType = HKQuantityType.quantityType(forIdentifier: .height) else {
-//            print("Height type not available!")
-//            return
-//        }
-//
-//        getMostRecentSample(for: heightType) { [weak self] sample, error in
-//            guard let `self` = self else { return }
-//
-//            if let error {
-//                print("Error fetching height: \(error.localizedDescription)")
-//                self.updateProfileData(for: .height)
-//                return
-//            }
-//
-//            guard let sample else {
-//                print("Error: No height sample to use")
-//                self.updateProfileData(for: .height)
-//                return
-//            }
-//
-//            let height = sample.quantity.doubleValue(for: .meter())
-//            currentHeightInMeters = height
-//
-//            let formatter = LengthFormatter()
-//            formatter.isForPersonHeightUse = true
-//            let heightValue = formatter.string(fromMeters: height)
-//
-//            self.updateProfileData(for: .height, value: heightValue)
-//            self.calculateBMI()
-//        }
-//    }
-//
-//    private func updateUserWeight() {
-//        guard let weightType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
-//            print("Weight type not available")
-//            return
-//        }
-//
-//        getMostRecentSample(for: weightType) { [weak self] (sample, error) in
-//            guard let `self` = self else { return }
-//
-//            if let error {
-//                print("Error fetching most recent weight sample: \(error.localizedDescription)")
-//                self.updateProfileData(for: .weight)
-//                return
-//            }
-//
-//            guard let sample else {
-//                self.updateProfileData(for: .weight)
-//                return
-//            }
-//
-//            let weight = sample.quantity.doubleValue(for: .gramUnit(with: .kilo))
-//            currentWeightInKilograms = weight
-//
-//            let formatter = MassFormatter()
-//            formatter.isForPersonMassUse = true
-//            let weightValue = formatter.string(fromKilograms: weight)
-//
-//            self.updateProfileData(for: .weight, value: weightValue)
-//            self.calculateBMI()
-//        }
-//    }
-//
-//    private func updateProfileData(for type: ProfileItemType, value: String = NSLocalizedString("Not available", comment: "")) {
-//        guard var item = profileData[type] else { return }
-//        item.value = value
-//        profileData[type] = item
-//    }
-//
-//    private func calculateBMI() {
-//        guard let height = currentHeightInMeters, height > 0,
-//              let weight = currentWeightInKilograms, weight > 0 else {
-//            updateProfileData(for: .bmi)
-//            return
-//        }
-//        let bmi = weight / (height * height)
-//        let value = String(format: "%.2f", bmi)
-//        updateProfileData(for: .bmi, value: value)
-//    }
-
-    func fetchMostRecentQuantitySample(for identifier: HKQuantityTypeIdentifier) async throws -> HKQuantity? {
-        guard let quantityType = HKQuantityType.quantityType(forIdentifier: identifier) else {
-            throw NSError(domain: "HealthKitManager",
-                          code: HKError.Code.errorInvalidArgument.rawValue,
-                          userInfo: [NSLocalizedDescriptionKey: "Invalid quantity type identifier: \(identifier.rawValue)"])
-        }
-
-        let predicate = HKQuery.predicateForSamples(withStart: .distantPast, end: .now, options: .strictEndDate)
-        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let query = HKSampleQuery(sampleType: quantityType,
-                                      predicate: predicate,
-                                      limit: 1,
-                                      sortDescriptors: [sortDescriptor]) { _, samples, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                continuation.resume(returning: (samples?.first as? HKQuantitySample)?.quantity)
-            }
-            self.healthStore.execute(query)
         }
     }
 }
