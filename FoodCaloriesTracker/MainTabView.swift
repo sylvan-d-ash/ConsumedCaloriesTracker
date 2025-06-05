@@ -27,7 +27,7 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-                EnergyView()
+                EnergyView(healthKitManager: healthKitManager)
             }
             .tabItem {
                 Label("Energy", systemImage: "bolt.heart")
