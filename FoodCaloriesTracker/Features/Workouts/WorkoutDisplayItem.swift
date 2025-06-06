@@ -11,13 +11,14 @@ import HealthKit
 struct WorkoutDisplayItem: Identifiable {
     let id: UUID
     let hkWorkout: HKWorkout
-    let activityType: HKWorkoutActivityType
-    let name: String
-    let iconName: String
     let dateRange: String
     let duration: String
     let energyBurned: String?
     let distance: String?
+
+    var activityType: HKWorkoutActivityType { hkWorkout.workoutActivityType }
+    var name: String { hkWorkout.workoutActivityType.displayName }
+    var iconName: String { hkWorkout.workoutActivityType.iconName }
 
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -51,11 +52,6 @@ struct WorkoutDisplayItem: Identifiable {
     init(hkWorkout: HKWorkout) {
         self.id = hkWorkout.uuid
         self.hkWorkout = hkWorkout
-        self.activityType = hkWorkout.workoutActivityType
-
-        let (name, icon) = Self.activityTypeDetails(hkWorkout.workoutActivityType)
-        self.name = name
-        self.iconName = icon
         self.dateRange = "\(Self.dateFormatter.string(from: hkWorkout.startDate))"
         self.duration = Self.durationFormatter.string(from: hkWorkout.duration) ?? "N/A"
 
