@@ -91,42 +91,48 @@ struct MainTabView: View {
 
             HStack(spacing: 0) {
                 ForEach(tabItems) { item in
-                    GeometryReader { reader in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                selectedTabTag = item.tag
-                                xAxis = reader.frame(in: .global).minX
-                            }
-                        }) {
-                            Image(systemName: item.icon)
-                                .resizable()
-                                .renderingMode(.template)
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 25, height: 25)
-                                .foregroundStyle(selectedTabTag == item.tag ? .orange : .gray)
-                                .padding(selectedTabTag == item.tag ? 15 : 0)
-                                .background(
-                                    (selectedTabTag == item.tag ? Color(UIColor.tertiarySystemBackground) : Color.clear)
-                                        .clipShape(Circle())
-                                )
-                                .matchedGeometryEffect(id: item.tag, in: animation)
-                                .offset(
-                                    x: selectedTabTag == item.tag ? (reader.frame(in: .global).minX - reader.frame(in: .global).midX + (reader.size.width / 2) - 12.5) : 0, // Centering adjustment
-                                    y: selectedTabTag == item.tag ? -50 : 0
-                                )
-                        }
-                        .onAppear {
-                            // Set initial xAxis for the first tab
-                            if item.tag == tabItems.first?.tag {
-                                // Small delay to ensure geometry is available
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                    VStack(spacing: 0) {
+                        GeometryReader { reader in
+                            Button(action: {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    selectedTabTag = item.tag
                                     xAxis = reader.frame(in: .global).minX
+                                }
+                            }) {
+                                Image(systemName: item.icon)
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 25, height: 25)
+                                    .foregroundStyle(selectedTabTag == item.tag ? .orange : .gray)
+                                    .padding(selectedTabTag == item.tag ? 15 : 0)
+                                    .background(
+                                        (selectedTabTag == item.tag ? Color(UIColor.tertiarySystemBackground) : Color.clear)
+                                            .clipShape(Circle())
+                                    )
+                                    .matchedGeometryEffect(id: item.tag, in: animation)
+                                    .offset(
+                                        x: selectedTabTag == item.tag ? (reader.frame(in: .global).minX - reader.frame(in: .global).midX + (reader.size.width / 2) - 12.5) : 0, // Centering adjustment
+                                        y: selectedTabTag == item.tag ? -50 : 0
+                                    )
+                            }
+                            .onAppear {
+                                // Set initial xAxis for the first tab
+                                if item.tag == tabItems.first?.tag {
+                                    // Small delay to ensure geometry is available
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                                        xAxis = reader.frame(in: .global).minX
+                                    }
                                 }
                             }
                         }
+                        // This frame is for the GeometryReader's content (the button)
+                        .frame(width: 25, height: 30)
+
+                        Text(item.name)
+                            .font(.caption)
+                            .foregroundStyle(selectedTabTag == item.tag ? .orange : .gray)
                     }
-                    // This frame is for the GeometryReader's content (the button)
-                    .frame(width: 25, height: 30)
 
                     if item.tag != tabItems.last?.tag {
                         Spacer(minLength: 0)
