@@ -9,20 +9,28 @@ import SwiftUI
 
 struct WorkoutRowView: View {
     let item: WorkoutDisplayItem
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.iconName)
-                .font(.title2)
-                .foregroundStyle(.green)
-                .frame(width: 30)
+            ZStack {
+                Circle()
+                    .fill(.green.opacity(colorScheme == .dark ? 0.3: 0.15))
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: item.iconName)
+                    .font(.title2)
+                    .foregroundStyle(.green)
+                    .frame(width: 30)
+            }
+            .frame(width: 44, height: 44)
 
             VStack(alignment: .leading) {
                 Text(item.name)
-                    .font(.caption)
+                    .font(.subheadline)
 
                 Text(item.duration)
-                    .font(.headline)
+                    .font(.title2)
                     .foregroundStyle(.orange)
             }
 
@@ -35,12 +43,16 @@ struct WorkoutRowView: View {
 
                 if let energy = item.energyBurned {
                     Text(energy)
-                        .font(.headline)
+                        .font(.title2)
                         .foregroundStyle(.red)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 15)
+        .background(Color(UIColor.tertiarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.15 : 0.05), radius: 3, x: 0, y: 2)
     }
 }
 
@@ -79,6 +91,11 @@ struct WorkoutsListView: View {
                     Section("Recent Workouts") {
                         ForEach(viewModel.workouts) { item in
                             WorkoutRowView(item: item)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(
+                                    EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)
+                                )
                         }
                     }
                 }
@@ -96,4 +113,5 @@ struct WorkoutsListView: View {
 
 #Preview {
     WorkoutsListView(healthKitManager: HealthKitManager())
+//        .preferredColorScheme(.dark)
 }
