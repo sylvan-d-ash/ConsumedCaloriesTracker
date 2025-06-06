@@ -41,12 +41,20 @@ struct WorkoutsListView: View {
                 } else {
                     Section("Recent Workouts") {
                         ForEach(viewModel.workouts) { item in
-                            WorkoutRowView(item: item)
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(
-                                    EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)
-                                )
+                            ZStack {
+                                WorkoutRowView(item: item)
+                                    .contentShape(Rectangle())
+
+                                NavigationLink(destination: WorkoutDetailsView(item: item)) {
+                                    EmptyView()
+                                }
+                                .opacity(0)
+                            }
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(
+                                EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)
+                            )
                         }
                     }
                 }
