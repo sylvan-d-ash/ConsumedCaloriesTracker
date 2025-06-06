@@ -1,5 +1,5 @@
 //
-//  EnergyView-ViewModel.swift
+//  Energy-ViewModel.swift
 //  FoodCaloriesTracker
 //
 //  Created by Sylvan  on 05/06/2025.
