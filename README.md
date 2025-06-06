@@ -1,5 +1,5 @@
-# ConsumedCaloriesTracker
-An app to track dietary energy from food consumed. 
+# HealthAndFitness
+An app to track dietary energy from food consumed, as well as workouts done. 
 
 ## Screenshots
 
