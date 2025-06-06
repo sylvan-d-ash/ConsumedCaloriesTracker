@@ -63,22 +63,11 @@ final class HealthKitManager: ObservableObject {
                           userInfo: [NSLocalizedDescriptionKey: "Invalid type read/write identifier(s)"])
         }
 
+        let workoutType = HKObjectType.workoutType()
         let write: Set<HKSampleType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType]
-        let read: Set<HKObjectType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType, bloodType]
+        let read: Set<HKObjectType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType, bloodType, workoutType]
 
         try await healthStore.requestAuthorization(toShare: write, read: read)
-    }
-
-    func fetchDateOfBirth() throws -> Date? {
-        try healthStore.dateOfBirthComponents().date
-    }
-
-    func fetchBiologicalSex() throws -> HKBiologicalSex {
-        try healthStore.biologicalSex().biologicalSex
-    }
-
-    func fetchBloodType() throws -> HKBloodType {
-        try healthStore.bloodType().bloodType
     }
 
     func fetchMostRecentQuantitySample(for identifier: HKQuantityTypeIdentifier) async throws -> HKQuantity? {
@@ -104,6 +93,21 @@ final class HealthKitManager: ObservableObject {
             }
             self.healthStore.execute(query)
         }
+    }
+}
+
+// MARK: - ProfileViewModel
+extension HealthKitManager {
+    func fetchDateOfBirth() throws -> Date? {
+        try healthStore.dateOfBirthComponents().date
+    }
+
+    func fetchBiologicalSex() throws -> HKBiologicalSex {
+        try healthStore.biologicalSex().biologicalSex
+    }
+
+    func fetchBloodType() throws -> HKBloodType {
+        try healthStore.bloodType().bloodType
     }
 
     func saveHeightInMeters(_ height: Double, date: Date = .now) async throws {
@@ -266,5 +270,27 @@ extension HealthKitManager {
             dateOfBirth: dob,
             sex: sex
         )
+    }
+}
+
+// MARK: - Workouts
+extension HealthKitManager {
+    func fetchWorkouts(limit: Int = HKObjectQueryNoLimit) async throws -> [HKWorkout] {
+        let type = HKObjectType.workoutType()
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type,
+                                      predicate: nil,
+                                      limit: limit,
+                                      sortDescriptors: [sortDescriptor]) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            healthStore.execute(query)
+        }
     }
 }
