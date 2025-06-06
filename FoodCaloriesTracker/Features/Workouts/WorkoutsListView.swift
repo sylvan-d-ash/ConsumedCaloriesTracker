@@ -45,7 +45,7 @@ struct WorkoutRowView: View {
 }
 
 struct WorkoutsListView: View {
-    @State private var viewModel: ViewModel
+    @StateObject private var viewModel: ViewModel
 
     init(healthKitManager: HealthKitManager) {
         _viewModel = .init(wrappedValue: .init(healthKitManager: healthKitManager))
