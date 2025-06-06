@@ -73,6 +73,10 @@ struct MainTabView: View {
                     icon: "bolt.heart",
                     tag: "energy",
                     name: "Energy"),
+            TabItem(view: AnyView(WorkoutsListView(healthKitManager: healthKitManager)),
+                    icon: "figure.walk",
+                    tag: "workouts",
+                    name: "Workouts"),
         ]
 
         _selectedTabTag = State(initialValue: self.tabItems.first?.tag ?? "profile")
