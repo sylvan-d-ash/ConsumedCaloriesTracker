@@ -18,13 +18,11 @@ struct WorkoutDisplayItem: Identifiable {
     let duration: String
     let energyBurned: String?
     let distance: String?
-}
 
-extension WorkoutDisplayItem {
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.timeStyle = .none
         return formatter
     }()
 
@@ -57,7 +55,7 @@ extension WorkoutDisplayItem {
 
         let (name, icon) = Self.activityTypeDetails(hkWorkout.workoutActivityType)
         self.name = name
-        self.iconName = name
+        self.iconName = icon
         self.dateRange = "\(Self.dateFormatter.string(from: hkWorkout.startDate))"
         self.duration = Self.durationFormatter.string(from: hkWorkout.duration) ?? "N/A"
 
