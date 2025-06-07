@@ -56,9 +56,17 @@ struct LogWorkoutView: View {
                             Text("Distance (\(viewModel.distanceUnitDisplay))")
 
                             HStack {
+                                Picker("Distance Unit", selection: $viewModel.distanceUnit) {
+                                    ForEach(viewModel.availableDistanceUnit, id: \.self) { unit in
+                                        Text(unit.displayName)
+                                            .tag(unit)
+                                    }
+                                }
+                                .labelsHidden()
+
                                 Spacer()
 
-                                TextField(viewModel.distanceUnitDisplay, text: $viewModel.distance)
+                                TextField("0 \(viewModel.distanceUnitDisplay)", text: $viewModel.distance)
                                     .keyboardType(.decimalPad)
                                     .multilineTextAlignment(.trailing)
                                     .frame(width: 100)
