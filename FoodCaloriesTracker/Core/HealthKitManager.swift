@@ -64,7 +64,7 @@ final class HealthKitManager: ObservableObject {
         }
 
         let workoutType = HKObjectType.workoutType()
-        let write: Set<HKSampleType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType]
+        let write: Set<HKSampleType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, workoutType]
         let read: Set<HKObjectType> = [dietaryCaloriesEnergyType, activeEnergyBurnType, heightType, weightType, birthdayType, biologicalType, bloodType, workoutType]
 
         try await healthStore.requestAuthorization(toShare: write, read: read)

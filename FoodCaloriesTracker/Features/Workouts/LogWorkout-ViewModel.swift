@@ -9,6 +9,16 @@ import Foundation
 import Combine
 import HealthKit
 
+extension HKUnit {
+    var displayName: String {
+        switch self {
+        case .mile(): return "miles"
+        case .meterUnit(with: .kilo): return "km"
+        default: return "m"
+        }
+    }
+}
+
 extension LogWorkoutView {
     @MainActor
     final class ViewModel: ObservableObject {
@@ -25,6 +35,7 @@ extension LogWorkoutView {
         @Published var errorMessage: String?
 
         let availableTypes: [HKWorkoutActivityType] = HKWorkoutActivityType.commonActivityTypes
+        let availableDistanceUnit: [HKUnit] = [.mile(), .meterUnit(with: .kilo), .meter()]
 
         private var endDate: Date {
             Calendar.current.date(byAdding: .minute, value: Int(durationMinutes), to: startDate) ?? startDate
@@ -34,15 +45,7 @@ extension LogWorkoutView {
             HKWorkoutActivityType.distanceSupportingActivityTypes.contains(selectedActivityType)
         }
 
-        var distanceUnitDisplay: String {
-            if distanceUnit == .mile() {
-                return "miles"
-            } else if distanceUnit == .meterUnit(with: .kilo) {
-                return "km"
-            } else {
-                return "m"
-            }
-        }
+        var distanceUnitDisplay: String { distanceUnit.displayName }
 
         var numberFormatter: NumberFormatter {
             let formatter = NumberFormatter()

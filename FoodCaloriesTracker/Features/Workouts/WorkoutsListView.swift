@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct WorkoutsListView: View {
+    @EnvironmentObject var healthKitManager: HealthKitManager
     @StateObject private var viewModel: ViewModel
+    @State private var showLogWorkoutView: Bool = false
 
     init(healthKitManager: HealthKitManager) {
         _viewModel = .init(wrappedValue: .init(healthKitManager: healthKitManager))
@@ -66,10 +68,24 @@ struct WorkoutsListView: View {
             .refreshable {
                 Task { await viewModel.fetchWorkouts() }
             }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Log Workout", systemImage: "plus") {
+                        showLogWorkoutView.toggle()
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.orange)
+                }
+            }
+            .sheet(isPresented: $showLogWorkoutView) {
+                LogWorkoutView(healthKitManager: healthKitManager)
+            }
         }
     }
 }
 
 #Preview {
-    WorkoutsListView(healthKitManager: HealthKitManager())
+    let healthKitManager = HealthKitManager()
+    WorkoutsListView(healthKitManager: healthKitManager)
+        .environmentObject(healthKitManager)
 }
