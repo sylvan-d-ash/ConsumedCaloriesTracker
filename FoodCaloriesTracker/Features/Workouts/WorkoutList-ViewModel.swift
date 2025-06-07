@@ -30,10 +30,6 @@ extension WorkoutsListView {
             do {
                 let hkWorkouts = try await healthKitManager.fetchWorkouts()
                 workouts = hkWorkouts.map { WorkoutDisplayItem(hkWorkout: $0) }
-
-                if workouts.isEmpty {
-                    workouts = WorkoutDisplayItem.createSampleWorkoutDisplayItems()
-                }
             } catch {
                 errorMessage = "Failed to load workouts: \(error.localizedDescription)"
             }
