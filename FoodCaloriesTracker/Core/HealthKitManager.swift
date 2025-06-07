@@ -293,4 +293,46 @@ extension HealthKitManager {
             healthStore.execute(query)
         }
     }
+
+    func saveWorkout(activityType: HKWorkoutActivityType,
+                     startDate: Date,
+                     endDate: Date,
+                     totalEnergyBurned: HKQuantity?,
+                     totalDistance: HKQuantity?,
+                     workoutEvents: [HKWorkoutEvent]? = nil,
+                     metadata: [String: Any]? = nil) async throws {
+
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = activityType
+        let builder = HKWorkoutBuilder(healthStore: healthStore, configuration: configuration, device: nil)
+
+        if let metadata {
+            try await builder.addMetadata(metadata)
+        }
+
+        try await builder.beginCollection(at: startDate)
+
+        var samplesToAdd: [HKSample] = []
+        if let energy = totalEnergyBurned, let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
+            let energySample = HKCumulativeQuantitySample(type: type,
+                                                          quantity: energy,
+                                                          start: startDate,
+                                                          end: endDate)
+            samplesToAdd.append(energySample)
+        }
+        if let distance = totalDistance, let type = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) {
+            let distanceSample = HKCumulativeQuantitySample(type: type,
+                                                            quantity: distance,
+                                                            start: startDate,
+                                                            end: endDate)
+            samplesToAdd.append(distanceSample)
+        }
+        if !samplesToAdd.isEmpty {
+            try await builder.addSamples(samplesToAdd)
+        }
+
+        try await builder.finishWorkout()
+
+        print("Workout (via builder) and associated samples (if any) should now be saved.")
+    }
 }
