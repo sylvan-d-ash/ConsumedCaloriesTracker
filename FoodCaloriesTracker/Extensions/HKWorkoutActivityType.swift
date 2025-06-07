@@ -76,4 +76,8 @@ extension HKWorkoutActivityType: @retroactive Identifiable {
             .yoga, .hiking, .swimming, .elliptical, .rowing, .stairClimbing, .coreTraining, .cardioDance, .pilates, .flexibility, .mindAndBody, .cooldown, .other
         ]
     }
+
+    static var distanceSupportingActivityTypes: Set<HKWorkoutActivityType> = [
+        .walking, .running, .cycling, .swimming, .hiking, .rowing, .elliptical,
+    ]
 }
