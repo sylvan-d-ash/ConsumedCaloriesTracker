@@ -27,8 +27,8 @@ extension LogWorkoutView {
         @Published var durationHours: Int = 0
         @Published var durationMinutes: Int = 30
 
-        @Published var activeEnergy = ""
-        @Published var distance = ""
+        @Published var activeEnergy: Double?
+        @Published var distance: Double?
         @Published var distanceUnit: HKUnit = .meterUnit(with: .kilo)
 
         @Published var isLoading = false
@@ -67,11 +67,11 @@ extension LogWorkoutView {
                 return
             }
 
-            if let energy = Double(activeEnergy), energy < 0 {
+            if let energy = activeEnergy, energy < 0 {
                 errorMessage = "Active energy burned cannot be negative."
                 return
             }
-            if showDistanceField, let dist = Double(distance), dist < 0 {
+            if showDistanceField, let dist = distance, dist < 0 {
                 errorMessage = "Distance cannot be negative."
                 return
             }
@@ -80,12 +80,12 @@ extension LogWorkoutView {
             errorMessage = nil
 
             var energyQuantity: HKQuantity?
-            if let energyValue = Double(activeEnergy), energyValue > 0 {
+            if let energyValue = activeEnergy, energyValue > 0 {
                 energyQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: energyValue)
             }
 
             var distanceQuantity: HKQuantity?
-            if showDistanceField, let distanceValue = Double(distance), distanceValue > 0 {
+            if showDistanceField, let distanceValue = distance, distanceValue > 0 {
                 distanceQuantity = HKQuantity(unit: distanceUnit, doubleValue: distanceValue)
             }
 
@@ -97,12 +97,13 @@ extension LogWorkoutView {
                     totalEnergyBurned: energyQuantity,
                     totalDistance: distanceQuantity
                 )
+
+                successfullyAdded = true
             } catch {
                 errorMessage = "Failed to log workout: \(error.localizedDescription)"
             }
 
             isLoading = false
-            successfullyAdded = true
         }
     }
 }

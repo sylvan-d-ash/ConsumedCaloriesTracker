@@ -63,8 +63,9 @@ struct ProfileView: View {
                                 viewModel.handleProfileItemSelection(item)
                             } label: {
                                 ProfileRowView(item: item)
-                                    .foregroundStyle(.primary)
                             }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.orange)
                         } else {
                             ProfileRowView(item: item)
                         }

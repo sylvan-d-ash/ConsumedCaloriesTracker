@@ -61,6 +61,8 @@ struct JournalView: View {
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.orange)
                     }
                 }
             }

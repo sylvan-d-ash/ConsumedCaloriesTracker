@@ -37,7 +37,7 @@ struct WorkoutsListView: View {
                         ContentUnavailableView(
                             "No workouts logged yet.",
                             systemImage: "figure.walk",
-                            description: Text("Log your first workout to see it here!")
+                            description: Text("Tap the '+' button to log a workout.")
                         )
                     }
                 } else {
@@ -78,7 +78,9 @@ struct WorkoutsListView: View {
                 }
             }
             .sheet(isPresented: $showLogWorkoutView) {
-                LogWorkoutView(healthKitManager: healthKitManager)
+                LogWorkoutView(healthKitManager: healthKitManager) {
+                    Task { await viewModel.fetchWorkouts() }
+                }
             }
         }
     }

@@ -11,9 +11,11 @@ import HealthKit
 struct LogWorkoutView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel: ViewModel
+    private let onSuccessfulSave: (() -> Void)
 
-    init(healthKitManager: HealthKitManager) {
+    init(healthKitManager: HealthKitManager, onSuccessfulSave: @escaping (() -> Void)) {
         _viewModel = .init(wrappedValue: .init(healthKitManager: healthKitManager))
+        self.onSuccessfulSave = onSuccessfulSave
     }
 
     var body: some View {
@@ -45,7 +47,7 @@ struct LogWorkoutView: View {
 
                         Spacer()
 
-                        TextField("kcal", text: $viewModel.activeEnergy)
+                        TextField("0 kcal", value: $viewModel.activeEnergy, formatter: formatter)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
@@ -66,7 +68,7 @@ struct LogWorkoutView: View {
 
                                 Spacer()
 
-                                TextField("0 \(viewModel.distanceUnitDisplay)", text: $viewModel.distance)
+                                TextField("0 \(viewModel.distanceUnitDisplay)", value: $viewModel.distance, formatter: formatter)
                                     .keyboardType(.decimalPad)
                                     .multilineTextAlignment(.trailing)
                                     .frame(width: 100)
@@ -112,7 +114,12 @@ struct LogWorkoutView: View {
                 }
             }
             .alert("Workout Logged!", isPresented: $viewModel.successfullyAdded) {
-                Button("OK") { dismiss() }
+                Button("OK") {
+                    // NOTE: I don't like how this is done, but I'm tired,
+                    // so I'll let it be for now
+                    onSuccessfulSave()
+                    dismiss()
+                }
             }
         }
     }
@@ -121,11 +128,11 @@ struct LogWorkoutView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimum = 0 // Ensure non-negative
+        formatter.maximumFractionDigits = 2
         return formatter
     }
-
 }
 
 #Preview {
-    LogWorkoutView(healthKitManager: HealthKitManager())
+    LogWorkoutView(healthKitManager: HealthKitManager()) {}
 }
