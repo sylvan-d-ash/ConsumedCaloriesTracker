@@ -312,6 +312,12 @@ extension HealthKitManager {
 
         try await builder.beginCollection(at: startDate)
 
+        if let workoutEvents = workoutEvents, !workoutEvents.isEmpty {
+            try await builder.addWorkoutEvents(workoutEvents)
+        }
+
+        try await builder.endCollection(at: endDate)
+
         var samplesToAdd: [HKSample] = []
         if let energy = totalEnergyBurned, let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
             let energySample = HKCumulativeQuantitySample(type: type,
@@ -320,6 +326,7 @@ extension HealthKitManager {
                                                           end: endDate)
             samplesToAdd.append(energySample)
         }
+
         if let distance = totalDistance,
            let identifier = distanceType(for: activityType),
            let type = HKQuantityType.quantityType(forIdentifier: identifier) {
@@ -329,6 +336,7 @@ extension HealthKitManager {
                                                             end: endDate)
             samplesToAdd.append(distanceSample)
         }
+
         if !samplesToAdd.isEmpty {
             try await builder.addSamples(samplesToAdd)
         }
