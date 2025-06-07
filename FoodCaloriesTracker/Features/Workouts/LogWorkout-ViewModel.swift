@@ -30,6 +30,10 @@ extension LogWorkoutView {
             Calendar.current.date(byAdding: .minute, value: Int(durationMinutes), to: startDate) ?? startDate
         }
 
+        var showDistanceField: Bool {
+            HKWorkoutActivityType.distanceSupportingActivityTypes.contains(selectedActivityType)
+        }
+
         private let healthKitManager: HealthKitManager
 
         init(healthKitManager: HealthKitManager) {
@@ -46,7 +50,7 @@ extension LogWorkoutView {
                 errorMessage = "Active energy burned cannot be negative."
                 return
             }
-            if /*showDistanceField,*/ let dist = Double(distance), dist < 0 {
+            if showDistanceField, let dist = Double(distance), dist < 0 {
                 errorMessage = "Distance cannot be negative."
                 return
             }
@@ -60,7 +64,7 @@ extension LogWorkoutView {
             }
 
             var distanceQuantity: HKQuantity?
-            if /*showDistanceField,*/ let distanceValue = Double(distance), distanceValue > 0 {
+            if showDistanceField, let distanceValue = Double(distance), distanceValue > 0 {
                 distanceQuantity = HKQuantity(unit: distanceUnit, doubleValue: distanceValue)
             }
 
