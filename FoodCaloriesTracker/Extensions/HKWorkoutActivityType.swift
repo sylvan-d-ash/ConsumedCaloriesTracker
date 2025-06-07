@@ -49,7 +49,7 @@ extension HKWorkoutActivityType: @retroactive Identifiable {
         case .running: return "figure.run"
         case .walking: return "figure.walk"
         case .cycling: return "figure.outdoor.cycle"
-        case .traditionalStrengthTraining: return "figure.strengthtraining.tradition"
+        case .traditionalStrengthTraining: return "figure.strengthtraining.traditional"
         case .functionalStrengthTraining: return "figure.strengthtraining.functional"
         case .highIntensityIntervalTraining: return "flame.fill"
         case .yoga: return "figure.yoga"
