@@ -34,6 +34,23 @@ extension LogWorkoutView {
             HKWorkoutActivityType.distanceSupportingActivityTypes.contains(selectedActivityType)
         }
 
+        var distanceUnitDisplay: String {
+            if distanceUnit == .mile() {
+                return "miles"
+            } else if distanceUnit == .meterUnit(with: .kilo) {
+                return "km"
+            } else {
+                return "m"
+            }
+        }
+
+        var numberFormatter: NumberFormatter {
+            let formatter = NumberFormatter()
+            formatter.numberStyle = .decimal
+            formatter.maximumFractionDigits = 0 // No decimals for minutes
+            return formatter
+        }
+
         private let healthKitManager: HealthKitManager
 
         init(healthKitManager: HealthKitManager) {
