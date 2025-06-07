@@ -111,6 +111,9 @@ struct LogWorkoutView: View {
                     }
                 }
             }
+            .alert("Workout Logged!", isPresented: $viewModel.successfullyAdded) {
+                Button("OK") { dismiss() }
+            }
         }
     }
 

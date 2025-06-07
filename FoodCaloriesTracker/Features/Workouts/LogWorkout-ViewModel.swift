@@ -33,6 +33,7 @@ extension LogWorkoutView {
 
         @Published var isLoading = false
         @Published var errorMessage: String?
+        @Published var successfullyAdded = false
 
         let availableTypes: [HKWorkoutActivityType] = HKWorkoutActivityType.commonActivityTypes
         let availableDistanceUnit: [HKUnit] = [.mile(), .meterUnit(with: .kilo), .meter()]
@@ -101,6 +102,7 @@ extension LogWorkoutView {
             }
 
             isLoading = false
+            successfullyAdded = true
         }
     }
 }
