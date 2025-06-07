@@ -320,7 +320,9 @@ extension HealthKitManager {
                                                           end: endDate)
             samplesToAdd.append(energySample)
         }
-        if let distance = totalDistance, let type = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) {
+        if let distance = totalDistance,
+           let identifier = distanceType(for: activityType),
+           let type = HKQuantityType.quantityType(forIdentifier: identifier) {
             let distanceSample = HKCumulativeQuantitySample(type: type,
                                                             quantity: distance,
                                                             start: startDate,
@@ -334,5 +336,14 @@ extension HealthKitManager {
         try await builder.finishWorkout()
 
         print("Workout (via builder) and associated samples (if any) should now be saved.")
+    }
+
+    private func distanceType(for activityType: HKWorkoutActivityType) -> HKQuantityTypeIdentifier? {
+        switch activityType {
+        case .running, .walking, .hiking: return .distanceWalkingRunning
+        case .cycling: return .distanceCycling
+        case .swimming: return .distanceSwimming
+        default: return nil
+        }
     }
 }
