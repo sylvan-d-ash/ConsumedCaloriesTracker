@@ -41,6 +41,13 @@ struct WorkoutsListView: View {
                         )
                     }
                 } else {
+                    WorkoutSummaryView(workouts: viewModel.fetchedWorkouts)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(
+                            EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)
+                        )
+
                     ForEach(viewModel.sectionHeaders, id: \.self) { section in
                         Section(viewModel.groupHeader(for: section)) {
                             if let workouts = viewModel.groupedWorkouts[section] {

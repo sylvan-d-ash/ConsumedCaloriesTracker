@@ -12,13 +12,13 @@ import HealthKit
 extension WorkoutsListView {
     @MainActor
     final class ViewModel: ObservableObject {
-        @Published var isLoading = false
         @Published var errorMessage: String?
-        @Published var groupedWorkouts: [Date: [WorkoutDisplayItem]] = [:]
-        @Published var sectionHeaders: [Date] = []
+        @Published private(set) var isLoading = false
+        @Published private(set) var fetchedWorkouts: [HKWorkout] = []
+        @Published private(set) var groupedWorkouts: [Date: [WorkoutDisplayItem]] = [:]
+        @Published private(set) var sectionHeaders: [Date] = []
 
         private let healthKitManager: HealthKitManager
-        private var fetchedWorkouts: [HKWorkout] = []
 
         init(healthKitManager: HealthKitManager) {
             self.healthKitManager = healthKitManager
