@@ -68,24 +68,6 @@ struct WorkoutDisplayItem: Identifiable {
             self.distance = nil
         }
     }
-
-    static func activityTypeDetails(_ activityType: HKWorkoutActivityType) -> (name: String, icon: String) {
-        switch activityType {
-        case .running: return ("Running", "figure.run")
-        case .walking: return ("Walking", "figure.walk")
-        case .cycling: return ("Cycling", "figure.outdoor.cycle")
-        case .highIntensityIntervalTraining: return ("HIIT", "flame.fill")
-        case .yoga: return ("Yoga", "figure.yoga")
-        case .swimming: return ("Swimming", "figure.pool.swim")
-        case .hiking: return ("Hiking", "figure.hiking")
-        case .traditionalStrengthTraining: return ("Traditional Strength", "figure.strengthtraining.traditional") //dumbbell.fill
-        case .functionalStrengthTraining: return ("Functional Strength", "figure.strengthtraining.functional")
-        case .elliptical: return ("Elliptical", "figure.elliptical")
-        case .rowing: return ("Rowing", "figure.rower")
-        case .stairClimbing: return ("Stair Climbing", "figure.stairs")
-        default: return ("Workout", "figure.mixed.cardio")
-        }
-    }
 }
 
 extension WorkoutDisplayItem {

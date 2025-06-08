@@ -15,12 +15,12 @@ struct WorkoutRowView: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(.green.opacity(colorScheme == .dark ? 0.3: 0.15))
+                    .fill(item.activityType.iconColor.opacity(colorScheme == .dark ? 0.3: 0.15))
                     .frame(width: 44, height: 44)
 
                 Image(systemName: item.iconName)
                     .font(.title2)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(item.activityType.iconColor)
                     .frame(width: 30)
             }
             .frame(width: 44, height: 44)
