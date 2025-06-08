@@ -31,6 +31,7 @@ struct WorkoutRowView: View {
 
                 Text(item.duration)
                     .font(.title2)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.orange)
             }
 
@@ -44,6 +45,7 @@ struct WorkoutRowView: View {
                 if let energy = item.energyBurned {
                     Text(energy)
                         .font(.title2)
+                        .fontWeight(.semibold)
                         .foregroundStyle(.red)
                 }
             }

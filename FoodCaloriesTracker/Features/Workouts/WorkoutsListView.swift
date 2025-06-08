@@ -32,7 +32,7 @@ struct WorkoutsListView: View {
                             .multilineTextAlignment(.center)
                             .padding()
                     }
-                } else if viewModel.workouts.isEmpty {
+                } else if viewModel.sectionHeaders.isEmpty {
                     Section {
                         ContentUnavailableView(
                             "No workouts logged yet.",
@@ -41,22 +41,26 @@ struct WorkoutsListView: View {
                         )
                     }
                 } else {
-                    Section("Recent Workouts") {
-                        ForEach(viewModel.workouts) { item in
-                            ZStack {
-                                WorkoutRowView(item: item)
-                                    .contentShape(Rectangle())
+                    ForEach(viewModel.sectionHeaders, id: \.self) { section in
+                        Section(viewModel.groupHeader(for: section)) {
+                            if let workouts = viewModel.groupedWorkouts[section] {
+                                ForEach(workouts) { item in
+                                    ZStack {
+                                        WorkoutRowView(item: item)
+                                            .contentShape(Rectangle())
 
-                                NavigationLink(destination: WorkoutDetailsView(item: item)) {
-                                    EmptyView()
+                                        NavigationLink(destination: WorkoutDetailsView(item: item)) {
+                                            EmptyView()
+                                        }
+                                        .opacity(0)
+                                    }
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(
+                                        EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)
+                                    )
                                 }
-                                .opacity(0)
                             }
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(
-                                EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)
-                            )
                         }
                     }
                 }
