@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import SwiftUI
 
 extension HKWorkoutActivityType: @retroactive Identifiable {
     public var id: UInt { self.rawValue }
@@ -67,6 +68,21 @@ extension HKWorkoutActivityType: @retroactive Identifiable {
         case .other: return "figure.mixed.cardio" // A generic "activity" icon
             // Add more icons
         default: return "figure.mixed.cardio" // Fallback icon
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .walking, .running, .hiking:
+            return .orange
+        case .traditionalStrengthTraining, .functionalStrengthTraining, .highIntensityIntervalTraining, .coreTraining:
+            return .blue
+        case .mindAndBody, .yoga, .pilates, .flexibility:
+            return .purple
+        case .cycling, .elliptical, .cardioDance, .swimming:
+            return .green
+        default:
+            return .yellow
         }
     }
 
