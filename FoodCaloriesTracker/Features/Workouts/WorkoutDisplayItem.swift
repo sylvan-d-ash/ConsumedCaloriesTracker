@@ -20,10 +20,17 @@ struct WorkoutDisplayItem: Identifiable {
     var name: String { hkWorkout.workoutActivityType.displayName }
     var iconName: String { hkWorkout.workoutActivityType.iconName }
 
-    static let dateFormatter: DateFormatter = {
+    static let relativeDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true // "Today" or "Yesterday"
+        return formatter
+    }()
+
+    static let shortDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM" // 8 Jun
         return formatter
     }()
 
@@ -52,7 +59,7 @@ struct WorkoutDisplayItem: Identifiable {
     init(hkWorkout: HKWorkout) {
         self.id = hkWorkout.uuid
         self.hkWorkout = hkWorkout
-        self.dateRange = "\(Self.dateFormatter.string(from: hkWorkout.startDate))"
+        self.dateRange = Self.formatDate(hkWorkout.startDate)
         self.duration = Self.durationFormatter.string(from: hkWorkout.duration) ?? "N/A"
 
         //if let totalEnergy = hkWorkout.statistics(for: HKQuantityType(.activeEnergyBurned)) {
@@ -67,6 +74,13 @@ struct WorkoutDisplayItem: Identifiable {
         } else {
             self.distance = nil
         }
+    }
+
+    private static func formatDate(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) || Calendar.current.isDateInYesterday(date) {
+            return relativeDateFormatter.string(from: date)
+        }
+        return shortDateFormatter.string(from: date)
     }
 }
 
