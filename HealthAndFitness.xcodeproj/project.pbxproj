@@ -11,9 +11,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		04B2ECD12DF05009009574D9 /* FoodCaloriesTracker */ = {
+		04B2ECD12DF05009009574D9 /* HealthAndFitness */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FoodCaloriesTracker;
+			path = HealthAndFitness;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		04B2ECC62DF05009009574D9 = {
 			isa = PBXGroup;
 			children = (
-				04B2ECD12DF05009009574D9 /* FoodCaloriesTracker */,
+				04B2ECD12DF05009009574D9 /* HealthAndFitness */,
 				04B2ECD02DF05009009574D9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,7 +61,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				04B2ECD12DF05009009574D9 /* FoodCaloriesTracker */,
+				04B2ECD12DF05009009574D9 /* HealthAndFitness */,
 			);
 			name = HealthAndFitness;
 			packageProductDependencies = (
@@ -267,7 +267,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.daitensai.FoodCaloriesTracker;
+				PRODUCT_BUNDLE_IDENTIFIER = com.daitensai.HealthAndFitness;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -308,7 +308,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.daitensai.FoodCaloriesTracker;
+				PRODUCT_BUNDLE_IDENTIFIER = com.daitensai.HealthAndFitness;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;

@@ -1,6 +1,6 @@
 //
 //  HealthKitManager.swift
-//  FoodCaloriesTracker
+//  HealthAndFitness
 //
 //  Created by Sylvan  on 04/06/2025.
 //
