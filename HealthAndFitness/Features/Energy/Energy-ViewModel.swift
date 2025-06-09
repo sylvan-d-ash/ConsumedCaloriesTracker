@@ -9,21 +9,17 @@ import Foundation
 import HealthKit
 
 extension EnergyView {
-    struct EnergyDataStore {
-        var activeEnergyBurnedJoules: Double = 0.0
-        var restingEnergyBurnedJoules: Double = 0.0
-        var energyConsumedJoules: Double = 0.0
+    @MainActor
+    final class ViewModel: ObservableObject {
+        @Published private(set) var isLoading = false
+        @Published private(set) var errorMessage: String?
+        @Published private(set) var activeEnergyBurnedJoules: Double = 0.0
+        @Published private(set) var restingEnergyBurnedJoules: Double = 0.0
+        @Published private(set) var energyConsumedJoules: Double = 0.0
 
         var netEnergyJoules: Double {
             return energyConsumedJoules - (activeEnergyBurnedJoules + restingEnergyBurnedJoules)
         }
-    }
-
-    @MainActor
-    final class ViewModel: ObservableObject {
-        @Published var energyStore = EnergyDataStore()
-        @Published var isLoading = false
-        @Published var errorMessage: String?
 
         private var energyFormatter: EnergyFormatter = {
             let formatter = EnergyFormatter()
@@ -53,13 +49,14 @@ extension EnergyView {
                 do {
                     let activeJoules = try await healthKitManager.fetchDailyTotal(for: .activeEnergyBurned, unit: .joule())
                     let consumedJoules = try await healthKitManager.fetchDailyTotal(for: .dietaryEnergyConsumed, unit: .joule())
-                    energyStore.activeEnergyBurnedJoules = activeJoules
-                    energyStore.energyConsumedJoules = consumedJoules
+                    activeEnergyBurnedJoules = activeJoules
+                    energyConsumedJoules = consumedJoules
 
                     let bmrInputs = try await healthKitManager.fetchBMRCalculationInputs()
                     let calculatedRestingBurnJoules = calculateBasalBurnForToday(from: bmrInputs) ?? 0.0
-                    energyStore.restingEnergyBurnedJoules = calculatedRestingBurnJoules
+                    restingEnergyBurnedJoules = calculatedRestingBurnJoules
                 } catch {
+                    print("Error: \(error.localizedDescription)")
                     errorMessage = "Failed to load energy data: \(error.localizedDescription)"
                 }
 

@@ -26,7 +26,7 @@ private struct EnergyRowView: View {
 
 struct EnergyView: View {
     @Environment(\.scenePhase) var scenePhase
-    @State private var viewModel: ViewModel
+    @StateObject private var viewModel: ViewModel
 
     init(healthKitManager: HealthKitManager) {
         _viewModel = .init(wrappedValue: ViewModel(healthKitManager: healthKitManager))
@@ -49,10 +49,10 @@ struct EnergyView: View {
                 }
 
                 Section("Today's Energy Breakdown") {
-                    EnergyRowView(title: "Resting Burn", value: viewModel.stringFromJoules(viewModel.energyStore.restingEnergyBurnedJoules))
-                    EnergyRowView(title: "Active Burn", value: viewModel.stringFromJoules(viewModel.energyStore.activeEnergyBurnedJoules))
-                    EnergyRowView(title: "Consumed", value: viewModel.stringFromJoules(viewModel.energyStore.energyConsumedJoules))
-                    EnergyRowView(title: "Net", value: viewModel.stringFromJoules(viewModel.energyStore.netEnergyJoules))
+                    EnergyRowView(title: "Resting Burn", value: viewModel.stringFromJoules(viewModel.restingEnergyBurnedJoules))
+                    EnergyRowView(title: "Active Burn", value: viewModel.stringFromJoules(viewModel.activeEnergyBurnedJoules))
+                    EnergyRowView(title: "Consumed", value: viewModel.stringFromJoules(viewModel.energyConsumedJoules))
+                    EnergyRowView(title: "Net", value: viewModel.stringFromJoules(viewModel.netEnergyJoules))
                 }
             }
             .navigationTitle("Energy")

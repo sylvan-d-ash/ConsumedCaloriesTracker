@@ -235,6 +235,7 @@ extension HealthKitManager {
                                           quantitySamplePredicate: predicateForToday,
                                           options: .cumulativeSum) { _, statistics, error in
                 if let error {
+                    print("DailyTotal Error - ID: \(identifier.rawValue) - Error: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                     return
                 }
