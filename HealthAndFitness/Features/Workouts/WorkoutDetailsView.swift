@@ -1,6 +1,6 @@
 //
 //  WorkoutDetailsView.swift
-//  FoodCaloriesTracker
+//  HealthAndFitness
 //
 //  Created by Sylvan  on 06/06/2025.
 //
