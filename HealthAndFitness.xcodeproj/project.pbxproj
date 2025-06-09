@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		04B2ECCF2DF05009009574D9 /* FoodCaloriesTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FoodCaloriesTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		04B2ECCF2DF05009009574D9 /* HealthAndFitness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthAndFitness.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,7 +40,7 @@
 		04B2ECD02DF05009009574D9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				04B2ECCF2DF05009009574D9 /* FoodCaloriesTracker.app */,
+				04B2ECCF2DF05009009574D9 /* HealthAndFitness.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		04B2ECCE2DF05009009574D9 /* FoodCaloriesTracker */ = {
+		04B2ECCE2DF05009009574D9 /* HealthAndFitness */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 04B2ECDB2DF0500A009574D9 /* Build configuration list for PBXNativeTarget "FoodCaloriesTracker" */;
+			buildConfigurationList = 04B2ECDB2DF0500A009574D9 /* Build configuration list for PBXNativeTarget "HealthAndFitness" */;
 			buildPhases = (
 				04B2ECCB2DF05009009574D9 /* Sources */,
 				04B2ECCC2DF05009009574D9 /* Frameworks */,
@@ -63,11 +63,11 @@
 			fileSystemSynchronizedGroups = (
 				04B2ECD12DF05009009574D9 /* FoodCaloriesTracker */,
 			);
-			name = FoodCaloriesTracker;
+			name = HealthAndFitness;
 			packageProductDependencies = (
 			);
 			productName = FoodCaloriesTracker;
-			productReference = 04B2ECCF2DF05009009574D9 /* FoodCaloriesTracker.app */;
+			productReference = 04B2ECCF2DF05009009574D9 /* HealthAndFitness.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 04B2ECCA2DF05009009574D9 /* Build configuration list for PBXProject "FoodCaloriesTracker" */;
+			buildConfigurationList = 04B2ECCA2DF05009009574D9 /* Build configuration list for PBXProject "HealthAndFitness" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				04B2ECCE2DF05009009574D9 /* FoodCaloriesTracker */,
+				04B2ECCE2DF05009009574D9 /* HealthAndFitness */,
 			);
 		};
 /* End PBXProject section */
@@ -324,7 +324,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		04B2ECCA2DF05009009574D9 /* Build configuration list for PBXProject "FoodCaloriesTracker" */ = {
+		04B2ECCA2DF05009009574D9 /* Build configuration list for PBXProject "HealthAndFitness" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				04B2ECD92DF0500A009574D9 /* Debug */,
@@ -333,7 +333,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		04B2ECDB2DF0500A009574D9 /* Build configuration list for PBXNativeTarget "FoodCaloriesTracker" */ = {
+		04B2ECDB2DF0500A009574D9 /* Build configuration list for PBXNativeTarget "HealthAndFitness" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				04B2ECDC2DF0500A009574D9 /* Debug */,
