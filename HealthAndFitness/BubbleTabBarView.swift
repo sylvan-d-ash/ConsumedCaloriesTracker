@@ -36,7 +36,7 @@ public struct BubbleTabBarView<Tab: BubbleTabRepresentable>: View {
         guard let padding = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first?.windows.first?.safeAreaInsets.bottom else { return 0 }
-        return padding
+        return padding - 15
     }
 
     public init(
@@ -89,7 +89,7 @@ public struct BubbleTabBarView<Tab: BubbleTabRepresentable>: View {
                                 .matchedGeometryEffect(id: tabItem.tag, in: animation)
                                 .offset(
                                     x: isSelected(tabItem) ? (reader.frame(in: .global).minX - reader.frame(in: .global).midX + (reader.size.width / 2) - 12.5) : 0,
-                                    y: isSelected(tabItem) ? -50 : 0
+                                    y: isSelected(tabItem) ? -45 : 0
                                 )
                         }
                         .onAppear {
@@ -121,7 +121,7 @@ public struct BubbleTabBarView<Tab: BubbleTabRepresentable>: View {
         } // End HStack
         .padding(.horizontal, 30)
         // Padding for the content inside the bar
-        .padding(.vertical)
+        .padding(.vertical, 12)
         .background(
             barBackgroundColor
                 .clipShape(BubbleTabBarCustomShape(xAxis: xAxis))
