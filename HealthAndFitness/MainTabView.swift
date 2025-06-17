@@ -49,6 +49,7 @@ struct MainTabView: View {
             TabView(selection: $selectedAppTab) {
                 ForEach(AppTab.allCases) { tab in
                     viewForTab(tab)
+                        .tag(tab)
                 }
             }
 
